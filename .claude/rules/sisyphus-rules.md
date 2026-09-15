@@ -90,7 +90,6 @@ synced_from: SISYPHUS_RULES.md
 > Fire as many delegations as the task requires — the queue handles concurrency.
 > But only **3 run simultaneously** (`defaultConcurrency: 3` in system config).
 
-<!-- MASTER:concurrency -->
 | Setting               | Value | Controlled By                               |
 | --------------------- | ----- | ------------------------------------------- |
 | **Max running tasks** | 3     | System config (`defaultConcurrency: 3`)     |
@@ -112,7 +111,6 @@ synced_from: SISYPHUS_RULES.md
 ❌ WRONG: Fire 3 agents → wait → wait → wait → respond
 ✅ CORRECT: Fire agents → continue working / standby → process results as they arrive
 ```
-<!-- /MASTER:concurrency -->
 
 ### Stay Responsive to User (CRITICAL)
 
@@ -152,7 +150,6 @@ Every `task()` output includes session_id. **USE IT!**
 
 > **Note:** `task(...)` is the delegation primitive. Older examples may reference `delegate_task()` — treat them as equivalent.
 
-<!-- MASTER:session-continuity -->
 Every `task()` output includes a `session_id`. **ALWAYS use it.**
 
 > **Note:** `task(...)` is the delegation primitive. Older examples may reference `delegate_task()` — treat them as equivalent.
@@ -174,7 +171,6 @@ Every `task()` output includes a `session_id`. **ALWAYS use it.**
 ❌ WRONG: Task failed → new delegation from scratch (loses all context)
 ✅ CORRECT: Task failed → session_id="ses_xxx", prompt="Fix: [error]"
 ```
-<!-- /MASTER:session-continuity -->
 
 ```typescript
 // ❌ WRONG: Starting fresh loses context
@@ -201,7 +197,6 @@ task((session_id = "ses_abc123"), (prompt = "Fix: Type error on line 42"));
 
 When a delegated task **fails or produces incorrect results**:
 
-<!-- MASTER:failure-escalation -->
 When a delegated task **fails or produces incorrect results** (NOT due to connection loss or timeout):
 
 | Failure Type             | Action                                                     |
@@ -215,7 +210,6 @@ When a delegated task **fails or produces incorrect results** (NOT due to connec
 > This prevents wasting retries on the same weak model that already failed.
 
 > **Fallback note:** If `@oracle` is unavailable (rate limit, timeout), use `category="deep"` with detailed analysis prompt instead. See AGENTS.md § Advisory Agent Fallback Matrix.
-<!-- /MASTER:failure-escalation -->
 
 > **Why `deep` for retry?** The `deep` category uses a stronger reasoning model (e.g., GPT-5.3 Codex)
 > with autonomous problem-solving. It researches thoroughly before acting.
@@ -247,17 +241,14 @@ REPEATED ERROR (3x):
 
 ### Fallback Chain
 
-<!-- MASTER:fallback-chain -->
 - oracle → librarian → manual
 - librarian → explore + websearch → manual
 - explore → grep/glob → manual
-<!-- /MASTER:fallback-chain -->
 
 ---
 
 ## 7. Failure Counter Rule
 
-<!-- MASTER:failure-counter -->
 **Failure counter tracks SAME error/issue.** If a DIFFERENT error occurs, reset counter to 1.
 
 | Count | Action                                                                                |
@@ -268,11 +259,9 @@ REPEATED ERROR (3x):
 | 5+    | **ASK USER.** Confirm: continue / skip / try different approach. Full failure log.    |
 
 **Reset rule:** Different error = new counter starting at 1. Same error repeating = increment counter.
-<!-- /MASTER:failure-counter -->
 
 **Format for each fix attempt:**
 
-<!-- MASTER:failure-counter-format -->
 ```markdown
 ## Fix Attempt #[N]
 
@@ -281,7 +270,6 @@ REPEATED ERROR (3x):
 **Hypothesis:** [why this fix should work]
 **Action:** [specific fix in specific layer]
 ```
-<!-- /MASTER:failure-counter-format -->
 
 ---
 
@@ -358,7 +346,7 @@ When running in `/ulw-loop` mode, Sisyphus follows additional rules from the `ul
 - **Stop conditions**: Exit on 5+ failures on same issue, escalate to user
 - **Git discipline**: Commit after each completed batch, not just at the end
 
-> Full loop-mode rules: `.opencode/skills/ulw-loop/SKILL.md`
+> The executive summary above is the current source of truth for loop-mode rules.
 
 ---
 

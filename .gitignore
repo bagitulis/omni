@@ -20,6 +20,10 @@ __pycache__/
 *.pyc
 *.pyo
 
+# Ad-hoc cleanup / restore safety-net dirs (never commit — they hold
+# gigabytes of pre-cleanup archives + build logs).
+.backup-cleanup-*/
+
 # Build artifacts (bisa di-rebuild)
 backend/bin/
 *.exe

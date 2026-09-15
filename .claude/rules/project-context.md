@@ -19,7 +19,6 @@ synced_from: AGENTS.md
 
 ## Delegation Quick Reference
 
-<!-- MASTER:delegation-routing-compact -->
 | Situation             | Delegate To                   |
 | --------------------- | ----------------------------- |
 | Large task/feature    | Prometheus → Sisyphus         |
@@ -28,11 +27,9 @@ synced_from: AGENTS.md
 | Architecture question | `@oracle`                     |
 | UI/Frontend           | category="visual-engineering" |
 | Quick fix             | category="quick"              |
-<!-- /MASTER:delegation-routing-compact -->
 
 ### Delegation Failure Escalation (MANDATORY)
 
-<!-- MASTER:failure-escalation -->
 When a delegated task **fails or produces incorrect results** (NOT due to connection loss or timeout):
 
 | Failure Type             | Action                                                     |
@@ -46,17 +43,14 @@ When a delegated task **fails or produces incorrect results** (NOT due to connec
 > This prevents wasting retries on the same weak model that already failed.
 
 > **Fallback note:** If `@oracle` is unavailable (rate limit, timeout), use `category="deep"` with detailed analysis prompt instead. See AGENTS.md § Advisory Agent Fallback Matrix.
-<!-- /MASTER:failure-escalation -->
 
 ## Subagent Stuck Recovery
 
 Fallback chain:
 
-<!-- MASTER:fallback-chain -->
 - oracle → librarian → manual
 - librarian → explore + websearch → manual
 - explore → grep/glob → manual
-<!-- /MASTER:fallback-chain -->
 
 ---
 

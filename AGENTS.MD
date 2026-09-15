@@ -38,7 +38,6 @@
 - Editing code → Check SRP/DRY/OOP compliance
 - File > ~300 lines → Review for SRP/DRY/OOP violation
 
-<!-- MASTER:mandatory-tooling-gate -->
 ## Mandatory Tooling Gate — CodeGraph MCP
 
 > **STATUS: MANDATORY.** Skipping the tool is a **rule violation**, not a shortcut.
@@ -54,7 +53,7 @@
 - **CodeGraph = WHAT and WHERE** — code, graph, blast radius, callers.
 - **Project docs = WHY** — decisions, rationale, gotchas, historical context, project rules.
 
-CodeGraph does **not** index markdown. Rules, decisions, and history live in the project docs (`AGENTS.md`, `.claude/rules/`, `docs/`, `rules-master/`) — read them directly.
+CodeGraph does **not** index markdown. Rules, decisions, and history live in the project docs (`AGENTS.md`, `.claude/rules/`, `docs/`) — read them directly.
 
 ### Recheck is mandatory — a map is not proof
 
@@ -79,9 +78,7 @@ Claiming "already checked" when only the map was read is **forbidden**. Without 
 | Treat map output as verified truth | Recheck the specific lines before editing |
 
 **Violation = task failure.**
-<!-- /MASTER:mandatory-tooling-gate -->
 
-<!-- MASTER:tdd-dry-run-gate -->
 ## TDD + Dry Run (MANDATORY)
 
 ### TDD — RED → GREEN → REFACTOR
@@ -130,7 +127,6 @@ After approval, run the real version and compare against the prediction. A dry r
 | Claim TDD without failing-test evidence | Capture RED output |
 
 **Violation = task failure.**
-<!-- /MASTER:tdd-dry-run-gate -->
 
 ---
 
@@ -480,7 +476,6 @@ Do NOT remove PgBouncer — without it, ~8 tenants exhaust Postgres max_connecti
 > This limit is **orchestrator-controlled** (Sisyphus manages the pipeline).
 > Executors do NOT self-delegate unless instructed by the orchestrator.
 
-<!-- MASTER:delegation-routing-compact -->
 | Situation             | Delegate To                   |
 | --------------------- | ----------------------------- |
 | Large task/feature    | Prometheus → Sisyphus         |
@@ -489,11 +484,9 @@ Do NOT remove PgBouncer — without it, ~8 tenants exhaust Postgres max_connecti
 | Architecture question | `@oracle`                     |
 | UI/Frontend           | category="visual-engineering" |
 | Quick fix             | category="quick"              |
-<!-- /MASTER:delegation-routing-compact -->
 
 ### Delegation Failure Escalation (MANDATORY)
 
-<!-- MASTER:failure-escalation -->
 When a delegated task **fails or produces incorrect results** (NOT due to connection loss or timeout):
 
 | Failure Type             | Action                                                     |
@@ -507,7 +500,6 @@ When a delegated task **fails or produces incorrect results** (NOT due to connec
 > This prevents wasting retries on the same weak model that already failed.
 
 > **Fallback note:** If `@oracle` is unavailable (rate limit, timeout), use `category="deep"` with detailed analysis prompt instead. See AGENTS.md § Advisory Agent Fallback Matrix.
-<!-- /MASTER:failure-escalation -->
 
 ---
 
@@ -530,11 +522,9 @@ ERROR:   { "success": false, "error": "message" }
 
 Fallback chain:
 
-<!-- MASTER:fallback-chain -->
 - oracle → librarian → manual
 - librarian → explore + websearch → manual
 - explore → grep/glob → manual
-<!-- /MASTER:fallback-chain -->
 
 ---
 

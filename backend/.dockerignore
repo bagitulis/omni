@@ -1,0 +1,27 @@
+# Build artifacts
+server
+*.exe
+bin/
+dist/
+
+# Test artifacts + coverage
+coverage.out
+*.test
+*.prof
+
+# Local dev cruft
+.env
+.env.local
+.env.*.local
+.vscode
+.idea
+*.swp
+.DS_Store
+Thumbs.db
+
+# Version-control metadata (not needed at build time)
+.git
+.gitignore
+
+# Go module cache (rebuilt inside the container)
+.cache

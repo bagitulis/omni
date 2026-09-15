@@ -147,10 +147,21 @@ def get_compose_command() -> list[str]:
     Raises:
         RuntimeError if no compose variant is found.
     """
+    # The unified runtime is the source of truth. If the active runtime is
+    # podman, the docker-only legacy path below cannot help and would crash
+    # on hosts without a `docker` CLI (WinError 2 on Windows). Propagate the
+    # runtime's RuntimeError so callers see a clear "install podman-compose"
+    # message instead of a mysterious FileNotFoundError.
     try:
-        return get_runtime().get_compose_command()
+        runtime = get_runtime()
     except RuntimeError:
-        pass
+        runtime = None
+    if runtime is not None:
+        try:
+            return runtime.get_compose_command()
+        except RuntimeError:
+            if runtime.name == "podman":
+                raise
 
     # Fall back to legacy Docker-only detection
     import os
@@ -160,6 +171,16 @@ def get_compose_command() -> list[str]:
     import urllib.error
     import urllib.request
     from pathlib import Path
+
+    # If docker itself is missing, skip the legacy path entirely. Every helper
+    # below shells out to `docker ...`, which raises FileNotFoundError on
+    # Windows when docker.exe is absent.
+    if not shutil.which("docker"):
+        raise RuntimeError(
+            "Docker Compose is not available and the `docker` CLI was not "
+            "found on PATH. Install Docker Desktop, or set "
+            "CONTAINER_RUNTIME=podman and install podman-compose."
+        )
 
     def repair_docker_cli_config() -> None:
         config_path = _real_home() / ".docker" / "config.json"

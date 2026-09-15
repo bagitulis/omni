@@ -173,7 +173,6 @@ panic("something went wrong")
 
 ---
 
-<!-- MASTER:file-size-quality -->
 ## ~300 Lines Per File (Quality Signal)
 
 > **~300 lines is NOT a hard limit.** It's a quality signal that MUST trigger a refactor attempt.
@@ -195,6 +194,5 @@ panic("something went wrong")
 - Type definition files that are purely interfaces/types
 
 **ONLY applies to:** Business logic, handlers, services, components, utilities
-<!-- /MASTER:file-size-quality -->
 
 **If exceeding:** Split by operation (create, read, update, delete).

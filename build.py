@@ -90,12 +90,57 @@ def _ensure_venv():
 
 def _ensure_path():
     """
-    Ensure npm/node are discoverable in PATH.
-    Cross-platform: handles Windows (nvm, default install) and Linux (~/.local/bin, nvm, fnm, volta).
+    Ensure npm/node AND the container runtime (docker/podman) plus the
+    project venv's Scripts folder are discoverable in PATH.
+
+    Cross-platform: handles Windows (nvm, default install, Docker Desktop,
+    Podman for Windows) and Linux (~/.local/bin, nvm, fnm, volta).
     """
+    import shutil
+
+    # (1) Always put the project venv on PATH so subprocess.run() can find
+    #     tools installed inside it (podman-compose, docker-compose, etc.).
+    #     Skipping this made `get_compose_command()` invisible to child
+    #     processes even after `pip install podman-compose` in the venv.
+    venv_scripts = project_root / ".venv" / ("Scripts" if os.name == "nt" else "bin")
+    if venv_scripts.exists():
+        path_sep = ";" if os.name == "nt" else ":"
+        current = os.environ.get("PATH", "")
+        if str(venv_scripts) not in current:
+            os.environ["PATH"] = f"{venv_scripts}{path_sep}{current}"
+
+    # (2) Container runtime search: docker/podman may live outside the
+    #     default PATH the subprocess inherits (Windows Start-Process
+    #     strips a lot of the interactive PATH). Look for well-known
+    #     install locations and prepend them if the CLI is not visible.
+    if os.name == "nt":
+        runtime_candidates = [
+            Path(r"C:\Program Files\Docker\Docker\resources\bin"),
+            Path(r"C:\Program Files\RedHat\Podman"),
+            Path(r"C:\Program Files\Podman\bin"),
+        ]
+        need_docker = shutil.which("docker") is None
+        need_podman = shutil.which("podman") is None
+        if need_docker or need_podman:
+            path_sep = ";"
+            current = os.environ.get("PATH", "")
+            added_runtime: list[str] = []
+            for cand in runtime_candidates:
+                if not cand.exists():
+                    continue
+                cand_str = str(cand)
+                if cand_str in current:
+                    continue
+                has_docker = (cand / "docker.exe").exists()
+                has_podman = (cand / "podman.exe").exists()
+                if (need_docker and has_docker) or (need_podman and has_podman):
+                    added_runtime.append(cand_str)
+            if added_runtime:
+                os.environ["PATH"] = path_sep.join(added_runtime) + path_sep + os.environ.get("PATH", "")
+                print(f"[AUTO] Added container runtime to PATH: {', '.join(added_runtime)}")
+
     # Quick check: npm already in PATH?
     npm_cmd = "npm.cmd" if os.name == "nt" else "npm"
-    import shutil
     if shutil.which(npm_cmd):
         return  # Already good
 

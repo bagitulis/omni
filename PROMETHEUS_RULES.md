@@ -538,7 +538,6 @@ Plan is VALID only if ALL gates are met:
 
 > **This gate is IN ADDITION to existing quality gates above. It does NOT replace them.**
 
-<!-- MASTER:momus-plan-acc-gate -->
 **PLANNER RULE:** After creating a plan, you MUST consult Momus for review and iterate until ACC.
 
 **Flow:**
@@ -600,7 +599,6 @@ Please evaluate. ACC or REJECT with issues to fix.
 2. If unavailable, use `category="deep"` with Momus-style review prompt
 3. If still unavailable, perform documented self-review using Momus criteria checklist
 4. Document that Momus was unavailable, proceed with caution
-<!-- /MASTER:momus-plan-acc-gate -->
 
 ---
 
@@ -781,7 +779,6 @@ Router → OrderHandler.HandleExportOrders → OrderService.ExportOrders → Ord
 
 ### 9.1 Concurrency (from DELEGATION_RULES.md §1)
 
-<!-- MASTER:concurrency -->
 | Setting               | Value | Controlled By                               |
 | --------------------- | ----- | ------------------------------------------- |
 | **Max running tasks** | 3     | System config (`defaultConcurrency: 3`)     |
@@ -803,11 +800,9 @@ Router → OrderHandler.HandleExportOrders → OrderService.ExportOrders → Ord
 ❌ WRONG: Fire 3 agents → wait → wait → wait → respond
 ✅ CORRECT: Fire agents → continue working / standby → process results as they arrive
 ```
-<!-- /MASTER:concurrency -->
 
 ### 9.2 Delegation Quick Reference
 
-<!-- MASTER:delegation-routing-compact -->
 | Situation             | Delegate To                   |
 | --------------------- | ----------------------------- |
 | Large task/feature    | Prometheus → Sisyphus         |
@@ -816,11 +811,9 @@ Router → OrderHandler.HandleExportOrders → OrderService.ExportOrders → Ord
 | Architecture question | `@oracle`                     |
 | UI/Frontend           | category="visual-engineering" |
 | Quick fix             | category="quick"              |
-<!-- /MASTER:delegation-routing-compact -->
 
 ### 9.3 Failure Escalation in Plans (from DELEGATION_RULES.md §3)
 
-<!-- MASTER:failure-escalation -->
 When a delegated task **fails or produces incorrect results** (NOT due to connection loss or timeout):
 
 | Failure Type             | Action                                                     |
@@ -834,7 +827,6 @@ When a delegated task **fails or produces incorrect results** (NOT due to connec
 > This prevents wasting retries on the same weak model that already failed.
 
 > **Fallback note:** If `@oracle` is unavailable (rate limit, timeout), use `category="deep"` with detailed analysis prompt instead. See AGENTS.md § Advisory Agent Fallback Matrix.
-<!-- /MASTER:failure-escalation -->
 
 > Include this awareness in plans: executor tasks that involve risky/complex logic should note
 > "If this fails, escalate per DELEGATION_RULES.md §3" in the TODO item.

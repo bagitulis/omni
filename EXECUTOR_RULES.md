@@ -202,7 +202,6 @@ For each relevant layer:
 
 Track each attempt:
 
-<!-- MASTER:failure-counter -->
 **Failure counter tracks SAME error/issue.** If a DIFFERENT error occurs, reset counter to 1.
 
 | Count | Action                                                                                |
@@ -213,11 +212,9 @@ Track each attempt:
 | 5+    | **ASK USER.** Confirm: continue / skip / try different approach. Full failure log.    |
 
 **Reset rule:** Different error = new counter starting at 1. Same error repeating = increment counter.
-<!-- /MASTER:failure-counter -->
 
 **Format:**
 
-<!-- MASTER:failure-counter-format -->
 ```markdown
 ## Fix Attempt #[N]
 
@@ -226,11 +223,9 @@ Track each attempt:
 **Hypothesis:** [why this fix should work]
 **Action:** [specific fix in specific layer]
 ```
-<!-- /MASTER:failure-counter-format -->
 
 ### Failure Escalation (from DELEGATION_RULES.md §3)
 
-<!-- MASTER:failure-escalation -->
 When a delegated task **fails or produces incorrect results** (NOT due to connection loss or timeout):
 
 | Failure Type             | Action                                                     |
@@ -244,7 +239,6 @@ When a delegated task **fails or produces incorrect results** (NOT due to connec
 > This prevents wasting retries on the same weak model that already failed.
 
 > **Fallback note:** If `@oracle` is unavailable (rate limit, timeout), use `category="deep"` with detailed analysis prompt instead. See AGENTS.md § Advisory Agent Fallback Matrix.
-<!-- /MASTER:failure-escalation -->
 
 ---
 
@@ -289,7 +283,6 @@ c.JSON(http.StatusInternalServerError, gin.H{
 
 > **This gate is IN ADDITION to existing `post-task-evaluation` and `no-premature-done` rules. It does NOT replace them.**
 
-<!-- MASTER:executor-hybrid-evaluation -->
 **EXECUTOR RULE:** All completed work requires evaluation. Evaluation depth scales with task size.
 
 **Task Size Determination:**
@@ -373,7 +366,6 @@ Please evaluate. ACC or REJECT with issues to fix.
 2. If unavailable, use `category="deep"` with Oracle-style evaluation prompt
 3. If still unavailable, perform thorough self-review checklist
 4. Document that Oracle was unavailable, proceed with caution
-<!-- /MASTER:executor-hybrid-evaluation -->
 
 ---
 
@@ -408,7 +400,6 @@ ASK YOURSELF:
 - [ ] **Re-read the original task** — does my work fully address what was asked?
 - [ ] **Check for next steps** — is there follow-up work I should mention?
 
-<!-- MASTER:git-commit-gate -->
 ### Git Commit Evidence (MANDATORY — ZERO EXCEPTIONS)
 
 When committing, you MUST follow this EXACT sequence:
@@ -439,7 +430,6 @@ git log -1 --oneline  # Capture commit hash + subject
 - Push confirmation output (must show remote URL)
 
 **BLOCKING: NO evidence = task REJECTED by orchestrator.**
-<!-- /MASTER:git-commit-gate -->
 
 ---
 

@@ -35,10 +35,8 @@ cd mcp-servers && go build ./...
   - `src/api/` — API client + hooks (TanStack Query)
 - `mcp-servers/` — MCP protocol servers (Google Sheets, Python ads analysis)
 - `scripts/` — Setup, migration, and utility scripts
-- `rules-master/` — Master rules for auto-sync to all projects
 - `docs/` — Documentation + screenshots
-- `.claude/` — Claude Code config, rules, BMAD skills
-- `.agents/` — Agent skills (BMAD method, 43 skills)
+- `.claude/` — Claude Code config and rules
 - `notebooks/` — Jupyter notebooks for data analysis
 
 ## Tech Stack
@@ -60,68 +58,7 @@ cd mcp-servers && go build ./...
 - **Google** — Auth, Sheets API, service accounts
 - **Multi-tenant** — Schema-based tenant isolation (`tenant_{tenant_id}` + `search_path`). Postgres-only at runtime; a pooled connection is created per tenant and PgBouncer fronts them in production.
 
-## AI Platform Support
-
-- **Claude Code** — Primary (this project)
-- **OpenCode** — Via AI.py hub (`python AI.py` from extensions/)
-- Provider abstraction: `extensions/opencode-configs/ai_providers.py`
-- Cross-platform: each platform's config is independent — switching doesn't break the other
-
-## Available BMAD Skills (43 skills)
-
-Located in `.agents/skills/`. Invoke via slash command or natural language.
-
-### Core Agents
-- `bmad-agent-analyst` — Business analyst (Mary)
-- `bmad-agent-architect` — System architect (Winston)
-- `bmad-agent-dev` — Senior developer (Amelia)
-- `bmad-agent-pm` — Product manager (John)
-- `bmad-agent-tech-writer` — Documentation specialist (Paige)
-- `bmad-agent-ux-designer` — UX/UI designer (Sally)
-
-### Product Workflow
-- `bmad-brainstorming` — Ideation sessions with diverse techniques
-- `bmad-create-prd` / `bmad-edit-prd` / `bmad-validate-prd` — PRD lifecycle
-- `bmad-product-brief` — Product brief creation
-- `bmad-create-architecture` — Architecture design
-- `bmad-create-epics-and-stories` / `bmad-create-story` — Story management
-- `bmad-sprint-planning` / `bmad-sprint-status` — Sprint tracking
-- `bmad-check-implementation-readiness` — Validate specs before coding
-- `bmad-dev-story` / `bmad-quick-dev` — Story implementation
-- `bmad-evaluate-project` — Project evaluation (omni-specific)
-
-### Research & Discovery
-- `bmad-domain-research` — Industry/domain research
-- `bmad-market-research` — Market & competitor analysis
-- `bmad-technical-research` — Technology evaluation
-
-### Quality & Review
-- `bmad-code-review` — Adversarial code review
-- `bmad-review-adversarial-general` — Critical analysis
-- `bmad-review-edge-case-hunter` — Edge case detection
-- `bmad-editorial-review-prose` / `bmad-editorial-review-structure` — Writing review
-- `bmad-qa-generate-e2e-tests` — Automated test generation
-
-### Documentation
-- `bmad-document-project` — Generate project documentation
-- `bmad-index-docs` / `bmad-shard-doc` — Doc organization
-- `bmad-distillator` — Document compression
-
-### Meta & Utilities
-- `bmad-customize` — Skill customization
-- `bmad-help` — BMad guidance
-- `bmad-generate-project-context` — Generate project-context.md
-- `bmad-correct-course` — Mid-sprint changes
-- `bmad-checkpoint-preview` — Human review
-- `bmad-party-mode` — Multi-agent discussion
-- `bmad-retrospective` — Post-epic review
-- `bmad-prfaq` — Working backwards
-- `bmad-create-ux-design` — UX specifications
-- `bmad-advanced-elicitation` — Deep critique methods
-
-**Auto-routing**: Rules in `.claude/rules/bmad-auto-router.md` automatically detect task type and invoke appropriate skills in YOLO mode.
-
-## Available Rules (7 rules)
+## Available Rules
 
 Located in `.claude/rules/`. All rules auto-apply (`alwaysApply: true`).
 
@@ -131,7 +68,6 @@ Located in `.claude/rules/`. All rules auto-apply (`alwaysApply: true`).
 | `git-safety.md` | Git operation safety and auto-commit policy |
 | `code-quality.md` | ~300 line guideline, research protocol, commit evidence |
 | `delegation-rules.md` | Agent delegation, escalation, session continuity |
-| `bmad-auto-router.md` | Auto-detect task type → invoke BMAD skill |
 | `react-rules.md` | React 19 + Ant Design 5 standards (omni-specific) |
 | `proxy-no-vision.md` | Proxy vision support detection and fallbacks |
 | `playwright-screenshots.md` | Screenshot naming conventions (omni-specific) |

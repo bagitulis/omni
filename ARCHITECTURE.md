@@ -129,7 +129,6 @@ omni/
 │       ├── sheets/             # Google Sheets integration
 │       ├── totp/               # TOTP/2FA generator
 │       └── python/             # Python runner for ads
-├── rules-master/               # Rules control plane (rules.json, sync_rules.py)
 ├── docs/                       # Architecture, API, database, deployment docs
 ├── nginx/                      # Nginx config and SSL
 ├── scripts/                    # Build, deploy, DB scripts
