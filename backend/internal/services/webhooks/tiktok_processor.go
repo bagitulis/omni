@@ -7,6 +7,7 @@ import (
 	"time"
 
 	"github.com/omni/backend/internal/models"
+	"github.com/omni/backend/internal/realtime"
 	"github.com/omni/backend/internal/repositories"
 	"github.com/omni/backend/internal/services/oauth"
 )
@@ -34,13 +35,17 @@ type TiktokWebhookPayload struct {
 	Data       map[string]interface{} `json:"data"`
 }
 
-// TikTok webhook types
+// TikTok webhook types.
+// See partner.tiktokshop.com Webhooks; codes 1..5 shipped with the initial
+// v202309 rollout; code 6 was announced 2025-11 ("New Feature: Inventory
+// Update Webhook").
 const (
 	TiktokWebhookOrderStatusChange  = 1
 	TiktokWebhookOrderShipment      = 2
 	TiktokWebhookProductUpdate      = 3
 	TiktokWebhookReturnCreated      = 4
 	TiktokWebhookReturnStatusChange = 5
+	TiktokWebhookInventoryUpdate    = 6
 )
 
 // Process processes a TikTok webhook
@@ -74,6 +79,8 @@ func (p *TiktokWebhookProcessor) Process(ctx context.Context, tenantID, body, ti
 		processErr = p.processProductEvent(ctx, tenantID, payload)
 	case TiktokWebhookReturnCreated, TiktokWebhookReturnStatusChange:
 		processErr = p.processReturnEvent(ctx, tenantID, payload)
+	case TiktokWebhookInventoryUpdate:
+		processErr = p.processInventoryEvent(ctx, tenantID, payload)
 	default:
 		// Unknown event type, just log it
 	}
@@ -101,6 +108,8 @@ func (p *TiktokWebhookProcessor) getEventType(typeCode int) string {
 		return "return_created"
 	case TiktokWebhookReturnStatusChange:
 		return "return_status_change"
+	case TiktokWebhookInventoryUpdate:
+		return "inventory_update"
 	default:
 		return fmt.Sprintf("unknown_%d", typeCode)
 	}
@@ -144,6 +153,50 @@ func (p *TiktokWebhookProcessor) processProductEvent(ctx context.Context, tenant
 	}
 
 	return p.webhookRepo.CreateProductEvent(ctx, event)
+}
+
+// processInventoryEvent processes TikTok inventory-update webhook (code 6,
+// launched 2025-11 per partner.tiktokshop.com "New Feature: Inventory Update
+// Webhook"). Fans a `inventory/updated` realtime event so dashboards can
+// invalidate stock queries immediately instead of waiting for the next poll.
+// Payload shape from TikTok:
+//
+//	{"product_id":"...","sku_id":"...","stock_qty":<int>}
+func (p *TiktokWebhookProcessor) processInventoryEvent(ctx context.Context, tenantID string, payload TiktokWebhookPayload) error {
+	data := payload.Data
+	productID, _ := data["product_id"].(string)
+	if productID == "" {
+		return fmt.Errorf("missing product_id in inventory update payload")
+	}
+	skuID, _ := data["sku_id"].(string)
+
+	// stock_qty arrives as JSON number; accept float64 (default) or
+	// json.Number (when a decoder uses UseNumber).
+	var stockQty int64
+	switch v := data["stock_qty"].(type) {
+	case float64:
+		stockQty = int64(v)
+	case json.Number:
+		if n, err := v.Int64(); err == nil {
+			stockQty = n
+		}
+	}
+
+	// Fan to realtime (fire-and-forget; safe when hub is unwired).
+	realtimePublish := realtime.Get()
+	realtimePublish.PublishInventoryUpdated(tenantID, map[string]any{
+		"platform":   models.PlatformTiktok,
+		"product_id": productID,
+		"sku_id":     skuID,
+		"stock_qty":  stockQty,
+		"shop_id":    payload.ShopID,
+	})
+	// Do NOT persist to WebhookProductEvent here — inventory changes are a
+	// separate concern from product-metadata changes. A dedicated
+	// WebhookInventoryEvent model can land later; for now the realtime
+	// signal + the raw log row (Process() already saved one) is enough for
+	// consumers to react and refetch.
+	return nil
 }
 
 // processReturnEvent processes TikTok return events
