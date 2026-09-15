@@ -19,6 +19,7 @@ import (
 	"github.com/omni/backend/internal/handlers/tiktok"
 	"github.com/omni/backend/internal/middleware"
 	"github.com/omni/backend/internal/models"
+	"github.com/omni/backend/internal/realtime"
 	"github.com/omni/backend/internal/routes"
 	googleService "github.com/omni/backend/internal/services/google"
 	shopeeScraper "github.com/omni/backend/internal/services/scraper/shopee"
@@ -192,6 +193,35 @@ func main() {
 	scrapeService := shopeeScraper.NewScrapeService(tenantDBFor, extHub)
 	scrapeHandler := handlers.NewScrapeHandler(tenantDBFor, scrapeService)
 	routes.RegisterExtensionRoutes(api, extHandler, handlers.NewExtensionWSHandler(extWSConfig), scrapeHandler)
+
+	// ====== Realtime hub (Phase 4) ======
+	// Dashboard-facing WebSocket at /api/realtime/ws. JWT-authed, per-tenant
+	// broadcast, topic subscribe. Separate hub from extensions/: this one is
+	// keyed by (tenant, client_id) and is a fan-out primitive; the extensions
+	// hub is command/reply keyed by extension_id and stays as-is.
+	realtimeHub := realtime.NewHub()
+	rtCtx, rtCancel := context.WithCancel(serverCtx)
+	go realtimeHub.Run(rtCtx)
+	defer rtCancel()
+	realtimeCfg := &realtime.ConnConfig{
+		Hub: realtimeHub,
+		Authenticate: func(token string) (string, string, string, error) {
+			claims, err := application.JWTService.ValidateToken(token)
+			if err != nil {
+				return "", "", "", realtime.ErrInvalidToken
+			}
+			return claims.TenantID, claims.UserID, claims.Role, nil
+		},
+		// AllowedOrigins is populated from env at deploy time; empty here means
+		// only same-origin (empty Origin header) is accepted. Add production
+		// dashboards to FRONTEND_ORIGINS (Phase 5 wires the reader).
+		AllowedOrigins: []string{},
+	}
+	// Gin wraps http.HandlerFunc via c.Writer / c.Request; do the adapter
+	// inline so the realtime package stays free of a gin dependency.
+	api.GET(realtime.RealtimePath[len("/api"):], func(c *gin.Context) {
+		realtimeCfg.ServeUpgrade(c.Writer, c.Request)
+	})
 
 	// Register the scrape job type with the background executor, so a scrape can
 	// be queued rather than run inline. Done here rather than inside the
