@@ -108,22 +108,28 @@ func (h *OrderHandler) ShipOrder(c *gin.Context) {
 		return
 	}
 
-	// Build ship package request
-	shipReq := &tiktokPkg.ShipPackageRequest{}
-
-	// Seller Shipping: use tracking number and shipping provider
+	// Build ship package request. BuildShipPackageRequest applies the SEA
+	// cross-border handover_method deprecation policy (see pkg/tiktok
+	// deprecations.go). Region / cross-border flag are not yet threaded
+	// through to this handler; passing empty region defaults to current
+	// behaviour. Adding tenant → seller-region lookup here is tracked as a
+	// Phase-8 backlog item.
+	var (
+		selfShip *tiktokPkg.SelfShipmentInfo
+		handover string
+	)
 	if req.TrackingNumber != "" && req.ShippingProvider != "" {
-		shipReq.SelfShipment = &tiktokPkg.SelfShipmentInfo{
+		selfShip = &tiktokPkg.SelfShipmentInfo{
 			TrackingNumber:     req.TrackingNumber,
 			ShippingProviderID: req.ShippingProvider,
 		}
 	} else {
-		// TikTok Shipping: use handover method (PICKUP or DROP_OFF)
-		if req.HandoverMethod == "" {
-			req.HandoverMethod = "PICKUP" // Default to pickup
+		handover = req.HandoverMethod
+		if handover == "" {
+			handover = "PICKUP" // Default to pickup for TikTok Shipping
 		}
-		shipReq.HandoverMethod = req.HandoverMethod
 	}
+	shipReq := tiktokPkg.BuildShipPackageRequest("", false, handover, nil, selfShip)
 
 	resp, err := client.ShipPackage(c.Request.Context(), req.PackageID, shipReq)
 	if err != nil {

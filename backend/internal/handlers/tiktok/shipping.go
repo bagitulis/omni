@@ -55,11 +55,10 @@ func (h *ShippingHandler) ArrangeShipment(c *gin.Context) {
 		return
 	}
 
-	sdkReq := &tiktokPkg.ShipPackageRequest{
-		HandoverMethod: req.HandoverMethod,
-		PickupSlot:     req.PickupSlot,
-		SelfShipment:   req.SelfShipment,
-	}
+	// BuildShipPackageRequest applies the SEA cross-border handover_method
+	// deprecation policy. Empty region keeps current behaviour; wire real
+	// values when the tenant → seller-region map is available.
+	sdkReq := tiktokPkg.BuildShipPackageRequest("", false, req.HandoverMethod, req.PickupSlot, req.SelfShipment)
 
 	var result *tiktokPkg.ShipPackageResponse
 	var err error

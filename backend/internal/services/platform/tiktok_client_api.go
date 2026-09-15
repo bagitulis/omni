@@ -178,7 +178,14 @@ func (c *TiktokAPIClient) GetOrderDetails(ctx context.Context, orderIDs []string
 	return allOrders, nil
 }
 
-// GetProductList fetches products using POST /product/202309/products/search
+// GetProductList fetches products using POST /product/202502/products/search.
+//
+// Migrated from v202309 to v202502 (Phase 7 Item A): TikTok Shop announced
+// the new version alongside v202309 with a richer request body (audit_status,
+// category_version, listing_platforms, etc). Response shape kept identical
+// so downstream parsing (data.products[]) is unchanged. v202309 remains
+// available for now but is on the drift-audit backlog and should not be
+// re-introduced.
 func (c *TiktokAPIClient) GetProductList(ctx context.Context, offset, limit int) ([]map[string]interface{}, error) {
 	if !c.IsInitialized() {
 		return nil, fmt.Errorf("tiktok client not initialized")
@@ -191,7 +198,7 @@ func (c *TiktokAPIClient) GetProductList(ctx context.Context, offset, limit int)
 
 	body := map[string]interface{}{}
 
-	result, err := c.request("POST", "/product/202309/products/search", queryParams, body)
+	result, err := c.request("POST", "/product/202502/products/search", queryParams, body)
 	if err != nil {
 		return nil, err
 	}

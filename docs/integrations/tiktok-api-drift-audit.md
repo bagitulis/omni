@@ -20,7 +20,7 @@ the omni codebase actually calls today.
 | Order | `POST /order/202309/orders/search` | `202309` | `202309` (POST variant `202502` also exists) | ⚠️ same as above |
 | Order | `GET /order/202309/orders/{id}` | `202309` | `202309` | ✅ current |
 | Order | `POST /order/202309/orders/cancel` | `202309` | `202309` | ✅ current |
-| Product | `GET /product/202309/products/search` | `202309` | superseded by `POST /product/202502/products/search` for global product search | ⚠️ dual-version: `product.go:248` already uses 202502; `api.go:87` still uses 202309 |
+| Product | `GET /product/202309/products/search` | `202309` | superseded by `POST /product/202502/products/search` for global product search | ✅ Migrated in Phase 7 (internal caller `services/platform/tiktok_client_api.go:194` now uses 202502; unused `pkg/tiktok/api.go GetProducts` marked Deprecated for external-SDK compatibility) |
 | Product | `POST /product/202502/products/search` | `202502` | `202502` | ✅ current |
 | Product | `POST /product/202309/products` (create) | `202309` | check for `202405`/`202509` global variants | ⚠️ verify per market; SEA POP still on 202309 |
 | Product | `PUT /product/202309/products/{id}` | `202309` | `202309` | ✅ current |
@@ -31,7 +31,7 @@ the omni codebase actually calls today.
 | Product | `POST /product/202309/categories/recommend` (with `CategoryVersion: "v1"` for ID) | `202309` + `v1` | v1 still valid for Indonesia as of audit; check next quarter | ⚠️ verify: if TikTok pushes v2 for ID, flip `pkg/tiktok/category.go:63` |
 | Product | `GET /product/202309/categories/{id}/attributes` | `202309` | `202309` | ✅ current |
 | Product | `POST /product/202309/images/upload` | `202309` | `202309` | ✅ current |
-| Fulfillment | `POST /fulfillment/202309/packages/{id}/ship` | `202309` | `202309` (`handover_method` deprecated for SEA POP) | ⚠️ verify: SEA POP calls must drop `handover_method` |
+| Fulfillment | `POST /fulfillment/202309/packages/{id}/ship` | `202309` | `202309` (`handover_method` deprecated for SEA POP cross-border) | ✅ Phase 7 shipped `ShouldSendHandoverMethod` + `BuildShipPackageRequest` region-aware helpers; 3 handler call sites wired. Region context still `""` at call sites — populate when seller-region lookup lands (backlog) |
 | Fulfillment | `GET /fulfillment/202309/packages/{id}` | `202309` | `202309` | ✅ current |
 | Fulfillment | `GET /fulfillment/202309/packages/{id}/handover_time_slots` | `202309` | `202309` | ✅ current |
 | Fulfillment | `GET /fulfillment/202309/orders/{id}/handover_time_slots` | `202309` | `202309` | ✅ current |
@@ -61,18 +61,23 @@ the omni codebase actually calls today.
 
 Ordered by "hurts sellers now" → "nice-to-have":
 
-1. **SEA POP `handover_method` param drop** — audit tenants using cross-border
-   ship_package before removing; TikTok's deprecation is a soft one.
-2. **`GET /product/202309/products/search` → `POST /product/202502/products/search`
-   migration** for the caller at `pkg/tiktok/api.go:87`. The `product.go:248`
-   caller already uses 202502.
-3. **CategoryVersion probe for Indonesia** — script that calls
+1. **Seller-region + user-type wiring** — Phase 7 landed the deprecation
+   helpers (`ShouldSendHandoverMethod`, `BuildShipPackageRequest`) but all 3
+   handler call sites pass `region=""` / `isCrossBorder=false` because that
+   context isn't threaded through today. Populate from
+   `TiktokConfigManager.SellerRegion` + `UserType` once `LoadConfig` reads
+   those two keys from `platform_configs` (they exist as
+   `tiktok/sellerRegion` len=2 and `tiktok/userType` len=1 in the legacy
+   store).
+2. **CategoryVersion probe for Indonesia** — script that calls
    `RecommendCategory` with v2 and confirms the response shape; only then
    flip the const.
-4. **Wire `not_submitted_reasons`** on `GetProduct` into the product-detail
+3. **Wire `not_submitted_reasons`** on `GetProduct` into the product-detail
    UI so sellers can see rejection reasons without leaving the app.
-5. **Drop the 202309 finance fallback** at `pkg/tiktok/finance.go:88` after
+4. **Drop the 202309 finance fallback** at `pkg/tiktok/finance.go:88` after
    Q1 2027 (once TikTok fully sunsets it — no announcement yet).
+5. **Remove `pkg/tiktok/api.go GetProducts`** entirely after confirming no
+   external caller depends on `pkg/tiktok` (marked Deprecated in Phase 7).
 
 ## 4. Not affected
 

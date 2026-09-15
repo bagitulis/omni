@@ -58,10 +58,15 @@ func (c *Client) GetOrders(ctx context.Context, status string, pageSize int) (*O
 }
 
 // =============================================================================
-// Product List API (Legacy)
+// Product List API (Legacy — v202309)
 // =============================================================================
 
-// ProductListResponse represents TikTok product list response
+// ProductListResponse represents TikTok product list response (v202309 shape).
+//
+// Deprecated: v202309 GET /product/products/search is on the drift-audit
+// backlog; use SearchProductsResponse (v202502 POST body) via
+// SearchProductsV202502. Kept for API compatibility with any external
+// caller of pkg/tiktok; new code should not use this type.
 type ProductListResponse struct {
 	Code    int    `json:"code"`
 	Message string `json:"message"`
@@ -77,7 +82,13 @@ type ProductListResponse struct {
 	} `json:"data"`
 }
 
-// GetProducts fetches products from TikTok API
+// GetProducts fetches products from TikTok API.
+//
+// Deprecated: uses v202309 GET /product/products/search. Prefer
+// SearchProductsV202502 (POST /product/202502/products/search) which is the
+// currently maintained path per TikTok changelog. This function is retained
+// only for external SDK compatibility; every internal caller migrated in
+// Phase 7 (see docs/integrations/tiktok-api-drift-audit.md).
 func (c *Client) GetProducts(ctx context.Context, pageSize int) (*ProductListResponse, error) {
 	params := map[string]string{
 		"page_size": fmt.Sprintf("%d", pageSize),

@@ -165,7 +165,12 @@ func (h *OrderManagerHandler) bulkShipTikTok(ctx context.Context, tenantID, user
 		if cancelled, ok := cancelledBulkShipResult(ctx, orderSN); ok {
 			return cancelled
 		}
-		shipReq := &tiktokPkg.ShipPackageRequest{HandoverMethod: "PICKUP"}
+		// BuildShipPackageRequest applies the SEA cross-border handover_method
+		// deprecation policy. Region + cross-border flag are unknown at this
+		// call site so we pass "" / false which keeps the current behaviour
+		// (handover_method is included). Wire real values through here once
+		// the TikTok config manager surfaces sellerRegion + userType.
+		shipReq := tiktokPkg.BuildShipPackageRequest("", false, "PICKUP", nil, nil)
 		if _, err = client.ArrangeShipment(ctx, pkgID, shipReq); err != nil {
 			result.Status = "failed"
 			result.Error = err.Error()
