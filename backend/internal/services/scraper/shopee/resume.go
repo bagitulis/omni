@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"time"
 
 	"github.com/omni/backend/internal/models"
 	"github.com/omni/backend/internal/services/jobs"
@@ -73,25 +74,34 @@ func (s *ScrapeService) Resume(ctx context.Context, tenantID, jobID string) (Res
 		return ResumeOutcome{}, err
 	}
 
-	// The payload is written before the status, and both writes are conditional
-	// on the job still being blocked. A worker can claim the job the instant it
-	// turns pending, so a start page landing after the status would be read too
-	// late — the resumed run would restart from page 1.
-	res := db.WithContext(ctx).Model(&models.Job{}).
-		Where("id = ? AND status = ?", job.ID, models.JobStatusBlocked).
-		Update("data", payload)
-	if res.Error != nil {
-		return ResumeOutcome{}, fmt.Errorf("scrape: persist resume cursor for job %s: %w", jobID, res.Error)
+	// Both writes go in one transaction: without it, a failing status update
+	// after a successful payload update would strand the job as `blocked` with a
+	// cursor already shifted forward, and a second resume would skip the page
+	// the operator just cleared. The status update is filtered on `blocked` too,
+	// so a concurrent cancel between the SELECT and the UPDATE is respected.
+	var affected int64
+	err = db.WithContext(ctx).Transaction(func(tx *gorm.DB) error {
+		res := tx.Model(&models.Job{}).
+			Where("id = ? AND status = ?", job.ID, models.JobStatusBlocked).
+			Updates(map[string]any{
+				"data":       payload,
+				"status":     models.JobStatusPending,
+				"updated_at": time.Now(),
+			})
+		if res.Error != nil {
+			return res.Error
+		}
+		affected = res.RowsAffected
+		return nil
+	})
+	if err != nil {
+		return ResumeOutcome{}, fmt.Errorf("scrape: requeue job %s: %w", jobID, err)
 	}
-	if res.RowsAffected == 0 {
+	if affected == 0 {
 		// Something moved the job out of blocked between the read and the write
 		// — a cancel, or another resume. Report the current state as a no-op
 		// rather than forcing it back into the queue.
 		return currentStateOf(queue, jobID)
-	}
-
-	if err := queue.UpdateStatus(jobID, models.JobStatusPending, ""); err != nil {
-		return ResumeOutcome{}, fmt.Errorf("scrape: requeue job %s: %w", jobID, err)
 	}
 
 	log.Info().

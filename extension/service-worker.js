@@ -356,13 +356,36 @@ function sendResult(envelope) {
  * Anything that fails again is re-queued rather than dropped, so a socket that
  * dies mid-flush does not lose the remainder.
  */
-function flushPendingResults() {
-  for (const envelope of pendingResults.drain()) {
-    if (!send(envelope)) {
-      pendingResults.enqueue(envelope);
-      break;
+/**
+ * Flush a queue of pending envelopes through a `send` function.
+ *
+ * Extracted from `flushPendingResults` so the drain-and-requeue behaviour can
+ * be tested against a fake send: the failure mode that matters here is the
+ * remainder after a mid-flush failure, which a mirror test cannot express.
+ *
+ * Returns the count actually sent.
+ */
+export function flushQueue(queue, sendFn) {
+  const pending = queue.drain();
+  for (let i = 0; i < pending.length; i++) {
+    if (!sendFn(pending[i])) {
+      for (let j = i; j < pending.length; j++) {
+        queue.enqueue(pending[j]);
+      }
+      return i;
     }
   }
+  return pending.length;
+}
+
+/**
+ * Flush queued results after the server accepts the credential.
+ *
+ * See flushQueue for the invariant that keeps envelopes from being lost when
+ * a mid-flush send fails.
+ */
+function flushPendingResults() {
+  flushQueue(pendingResults, send);
 }
 
 // ─── Command dispatch ───────────────────────────────────────────────────────

@@ -15,6 +15,7 @@ import {
   makeResultQueue,
   withTimeout,
   classifyLoadOutcome,
+  flushQueue,
   PENDING_RESULT_LIMIT,
 } from '../service-worker.js';
 
@@ -53,6 +54,43 @@ test('the default bound is a real number, so the queue cannot grow unbounded', (
 test('draining an empty queue is a no-op rather than an error', () => {
   const q = makeResultQueue();
   assert.deepEqual(q.drain(), []);
+});
+
+test('flushQueue sends every envelope when the socket accepts them all', () => {
+  const q = makeResultQueue();
+  for (const id of ['a', 'b', 'c']) q.enqueue({ id });
+  const sent = [];
+  const count = flushQueue(q, (e) => { sent.push(e.id); return true; });
+  assert.equal(count, 3);
+  assert.deepEqual(sent, ['a', 'b', 'c']);
+  assert.equal(q.size(), 0);
+});
+
+test('flushQueue re-queues the failing envelope AND everything after it', () => {
+  // The old implementation broke out of the loop after re-queuing only the
+  // failing envelope, so 'c' and every later result were pulled from the queue
+  // and never returned. A mid-flush socket death used to lose the tail.
+  const q = makeResultQueue();
+  for (const id of ['a', 'b', 'c', 'd']) q.enqueue({ id });
+  let calls = 0;
+  const sent = [];
+  const count = flushQueue(q, (e) => {
+    calls++;
+    if (calls === 3) return false;
+    sent.push(e.id);
+    return true;
+  });
+  assert.equal(count, 2, 'two envelopes went out before the mid-flush failure');
+  assert.deepEqual(sent, ['a', 'b']);
+  assert.deepEqual(q.drain().map((e) => e.id), ['c', 'd'],
+    'the failing envelope AND everything after it must be re-queued');
+});
+
+test('flushQueue on an empty queue is a no-op that does not touch send', () => {
+  const q = makeResultQueue();
+  let called = 0;
+  flushQueue(q, () => { called++; return true; });
+  assert.equal(called, 0);
 });
 
 // ─── Every content command is bounded ────────────────────────────────────────

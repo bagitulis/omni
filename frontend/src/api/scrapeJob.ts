@@ -112,7 +112,14 @@ export function shouldStopPolling(status: string | undefined): boolean {
   return isTerminalScrapeStatus(status) || status === "blocked";
 }
 
-/** Parse a job's `result_data` summary, tolerating absence and malformed JSON. */
+/**
+ * Parse a job's `result_data` summary, tolerating absence and malformed JSON.
+ *
+ * Also tolerates a legacy double-encoded value: an older backend build wrapped
+ * the summary through `json.Marshal(string)`, storing `"{\\"pages\\":3}"`
+ * instead of `{"pages":3}`. A single JSON.parse yields a string, so this
+ * unwraps once more when the first parse produces one that itself parses.
+ */
 export function parseScrapeSummary(
   resultData: string | undefined,
 ): ScrapeSummary | null {
@@ -121,6 +128,16 @@ export function parseScrapeSummary(
     const parsed = JSON.parse(resultData) as unknown;
     if (parsed && typeof parsed === "object") {
       return parsed as ScrapeSummary;
+    }
+    if (typeof parsed === "string") {
+      try {
+        const inner = JSON.parse(parsed) as unknown;
+        if (inner && typeof inner === "object") {
+          return inner as ScrapeSummary;
+        }
+      } catch {
+        return null;
+      }
     }
     return null;
   } catch {

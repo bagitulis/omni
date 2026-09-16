@@ -3,6 +3,7 @@ package jobs
 import (
 	"encoding/json"
 	"fmt"
+	"strings"
 	"time"
 
 	"github.com/google/uuid"
@@ -259,13 +260,38 @@ func (m *QueueManager) GetJobStats() (map[string]interface{}, error) {
 	return stats, nil
 }
 
-// SerializePayload converts payload to JSON string
+// SerializePayload converts payload to a JSON string.
+//
+// A string that is itself already JSON is returned unchanged rather than being
+// wrapped as a JSON string literal: handlers hand back an assembled summary in
+// their return value, and double-encoding it produces "\"{\\\"pages\\\":3}\""
+// on disk. The dashboard's single JSON.parse then yields a string instead of
+// the summary object, and every field silently reads as undefined.
 func SerializePayload(payload interface{}) (string, error) {
+	if s, ok := payload.(string); ok && isJSONObjectOrArray(s) {
+		return s, nil
+	}
 	data, err := json.Marshal(payload)
 	if err != nil {
 		return "", err
 	}
 	return string(data), nil
+}
+
+// isJSONObjectOrArray reports whether a string is an already-serialised JSON
+// object or array. A quoted string ("hello") or a bare number is not, and must
+// go through Marshal so it lands as valid JSON.
+func isJSONObjectOrArray(s string) bool {
+	trimmed := strings.TrimSpace(s)
+	if trimmed == "" {
+		return false
+	}
+	if trimmed[0] != '{' && trimmed[0] != '[' {
+		return false
+	}
+	// The prefix check rejects "not a valid summary" fast; the Valid call rules
+	// out a broken payload that only starts with { or [.
+	return json.Valid([]byte(trimmed))
 }
 
 // EnqueueJob enqueues a job with type, data, and priority

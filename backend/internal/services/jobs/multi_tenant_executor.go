@@ -269,11 +269,18 @@ func (e *MultiTenantExecutor) executeJob(tenantDB *gorm.DB, tenantID string, job
 		log.Info().Msgf("[MultiTenantExecutor] Job %s timed out after %v", job.ID, e.jobTimeout)
 		qm.FailJob(job.ID, "job timed out after "+e.jobTimeout.String())
 	case res := <-resultCh:
-		if res.err != nil {
+		switch ClassifyHandlerResult(res.err) {
+		case HandlerOutcomeSelfRecorded:
+			// The handler already wrote a terminal state that a generic
+			// completion/failure would overwrite (a blocked scrape holds a
+			// resume cursor). Leave the row alone; only push the notification.
+			log.Info().Str("job_id", job.ID).Msg("[MultiTenantExecutor] Job handler recorded its own outcome")
+			e.pushNotificationToDB(tenantDB, tenantID, job, true, res.result)
+		case HandlerOutcomeFailed:
 			log.Info().Msgf("[MultiTenantExecutor] Job %s failed: %v", job.ID, res.err)
 			qm.FailJob(job.ID, res.err.Error())
 			e.pushNotificationToDB(tenantDB, tenantID, job, false, res.err.Error())
-		} else {
+		default:
 			log.Info().Msgf("[MultiTenantExecutor] Job %s completed successfully", job.ID)
 			qm.CompleteJobWithResult(job.ID, res.result)
 			e.pushNotificationToDB(tenantDB, tenantID, job, true, res.result)

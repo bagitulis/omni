@@ -100,6 +100,24 @@ describe("parseScrapeSummary", () => {
     expect(summary?.blocker?.blocked_page).toBe(4);
     expect(summary?.resume_from_page).toBe(4);
   });
+
+  it("tolerates a legacy double-encoded summary", () => {
+    // An older backend build wrapped the summary through json.Marshal(string),
+    // storing "\"{\\\"pages\\\":3}\"". A single JSON.parse yields a string, so
+    // this must recover the object rather than dropping the payload silently.
+    const doubleEncoded = JSON.stringify(
+      JSON.stringify({ reason: "blocked", resume_from_page: 4 }),
+    );
+    const summary = parseScrapeSummary(doubleEncoded);
+    expect(summary?.reason).toBe("blocked");
+    expect(summary?.resume_from_page).toBe(4);
+  });
+
+  it("returns null for a JSON string that is not itself JSON", () => {
+    // A plain quoted string ("hello") parses to "hello"; the recovery attempt
+    // must not throw when the inner parse fails.
+    expect(parseScrapeSummary(JSON.stringify("hello"))).toBeNull();
+  });
 });
 
 function job(overrides: Partial<ScrapeJob>): ScrapeJob {

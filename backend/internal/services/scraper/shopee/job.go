@@ -10,6 +10,7 @@ import (
 	"github.com/omni/backend/internal/extensions"
 	"github.com/omni/backend/internal/models"
 	"github.com/omni/backend/internal/repositories"
+	"github.com/omni/backend/internal/services/jobs"
 	"gorm.io/gorm"
 )
 
@@ -35,7 +36,12 @@ func (s *ScrapeService) Handler() func(ctx context.Context, payload string) (str
 			// to write into.
 			return "", fmt.Errorf("scrape: tenant_id missing from job context")
 		}
-		return s.RunJob(ctx, tenantID, payload)
+		// The executor puts the row's id in the context. Reusing it here keeps
+		// the self-recorded blocked row and the executor's own bookkeeping on
+		// the same row — without it, a resume would look up the derived id and
+		// find nothing.
+		jobID, _ := ctx.Value(models.ContextKeyJobID).(string)
+		return s.runJobWithID(ctx, tenantID, payload, jobID)
 	}
 }
 
@@ -81,6 +87,19 @@ type ScrapeService struct {
 
 	// now is a test seam.
 	now func() time.Time
+
+	// senderForTest injects a scripted CommandSender so the whole pipeline can
+	// be exercised without a real WebSocket. Production leaves it nil and the
+	// service builds a HubSender from the hub above.
+	senderForTest func(extensionID string) senderLike
+}
+
+// senderLike is the subset of CommandSender the service needs beyond the
+// scraper's own interface: open_tab and close_tab.
+type senderLike interface {
+	CommandSender
+	OpenTab(ctx context.Context, url string) (int64, error)
+	CloseTab(ctx context.Context)
 }
 
 // NewScrapeService creates a ScrapeService.
@@ -93,6 +112,15 @@ func NewScrapeService(tenantDB func(tenantID string) (*gorm.DB, error), hub *ext
 //
 // payload is the serialised ScrapeJobData.
 func (s *ScrapeService) RunJob(ctx context.Context, tenantID, payload string) (string, error) {
+	return s.runJobWithID(ctx, tenantID, payload, "")
+}
+
+// runJobWithID is RunJob with the job id supplied by the caller.
+//
+// Split out so the executor's own job id can be reused when it is available:
+// otherwise a blocked run's self-recorded row and its return-value summary would
+// carry different ids, and the resume endpoint would look up the wrong one.
+func (s *ScrapeService) runJobWithID(ctx context.Context, tenantID, payload, jobID string) (string, error) {
 	if tenantID == "" {
 		// Fail closed: with no tenant there is no schema to write into, and
 		// guessing one would be a cross-tenant leak.
@@ -112,10 +140,12 @@ func (s *ScrapeService) RunJob(ctx context.Context, tenantID, payload string) (s
 		return "", fmt.Errorf("scrape: tenant database: %w", err)
 	}
 
-	// The job id is the correlation key for scraped products. A caller that
-	// wants the rows groupable supplies one; otherwise a unique id is derived so
-	// rows are still attributable to this run.
-	jobID := data.JobID()
+	if jobID == "" {
+		// The job id is the correlation key for scraped products. A caller that
+		// wants the rows groupable supplies one; otherwise a unique id is
+		// derived so rows are still attributable to this run.
+		jobID = data.JobID()
+	}
 	if jobID == "" {
 		jobID = deriveJobID(s.now)
 	}
@@ -147,11 +177,8 @@ func (s *ScrapeService) run(ctx context.Context, db *gorm.DB, data *ScrapeJobDat
 		return "", err
 	}
 
-	sender := NewHubSender(s.hub, data.ExtensionID)
+	sender := s.buildSender(data.ExtensionID)
 
-	// Open a dedicated tab so the scrape does not disturb, or get disturbed by,
-	// whatever the user is doing in their own tabs. The sender records the tab
-	// id internally; every later command targets it.
 	entryURL := entryURLFor(data)
 	if _, err := sender.OpenTab(ctx, entryURL); err != nil {
 		return "", fmt.Errorf("scrape: open tab: %w", err)
@@ -194,20 +221,78 @@ func (s *ScrapeService) run(ctx context.Context, db *gorm.DB, data *ScrapeJobDat
 
 	summary := buildSummary(result, data, jobID, persisted)
 
-	// Re-check the context independently of the stop reason. The scraper can
-	// finish its last page just as the deadline expires, and without this the
-	// executor's select could record a completion for a run that was cancelled.
+	// A cancelled context is authoritative even when the scraper thought it
+	// finished cleanly: the executor's own timeout uses ctx.Done, so a run that
+	// crossed the deadline on its last page must not be recorded as complete.
 	if ctxErr := ctx.Err(); ctxErr != nil {
 		return summary, fmt.Errorf("scrape: stopped after %d page(s): %w", result.Pages, ctxErr)
 	}
 
+	// A blocked run must land on the row as `blocked`, with the summary so the
+	// resume endpoint can read the cursor. The generic executor knows only
+	// completed/failed, so this path writes the row itself and returns
+	// ErrHandlerCompleted to tell the executor it is done.
+	if outcomeForReason(result.Reason) == outcomeBlocked {
+		if writeErr := writeBlockedRow(ctx, db, jobID, summary, result); writeErr != nil {
+			return summary, fmt.Errorf("scrape: record blocked outcome for %s: %w", jobID, writeErr)
+		}
+		return summary, blockedHandlerErr(result)
+	}
+
 	if outcomeErr := scrapeOutcomeError(result); outcomeErr != nil {
-		// The summary is returned alongside the error so the partial results and
-		// the resume cursor are not lost with it.
+		// The summary is returned alongside the error so partial results and any
+		// error-mode metadata are not lost with it.
 		return summary, outcomeErr
 	}
 
 	return summary, nil
+}
+
+// buildSender returns the CommandSender, honouring the test seam if set.
+func (s *ScrapeService) buildSender(extensionID string) senderLike {
+	if s.senderForTest != nil {
+		return s.senderForTest(extensionID)
+	}
+	return NewHubSender(s.hub, extensionID)
+}
+
+// writeBlockedRow persists the blocked status and the summary on the job row.
+//
+// The write is guarded so a concurrent cancel that fires between capture and
+// persistence is not overwritten: only a row still `running` is moved to
+// `blocked`. Any other current status is left alone — the operator already
+// acted, and reinstating a challenge would be surprising.
+func writeBlockedRow(ctx context.Context, db *gorm.DB, jobID, summary string, result *Result) error {
+	updates := map[string]any{
+		"status":      models.JobStatusBlocked,
+		"result_data": summary,
+		"updated_at":  time.Now(),
+	}
+	if result.Blocker != nil {
+		updates["error_message"] = fmt.Sprintf("blocked by %s at %s on page %d",
+			result.Blocker.Kind, result.Blocker.URL, result.Blocker.Page)
+	}
+	res := db.WithContext(ctx).Model(&models.Job{}).
+		Where("id = ? AND status = ?", jobID, models.JobStatusRunning).
+		Updates(updates)
+	if res.Error != nil {
+		return res.Error
+	}
+	// Zero rows means the job was cancelled or otherwise moved out of running
+	// before the block was recorded. That is a legitimate outcome, not an error:
+	// the operator's action wins, and the scrape simply stopped.
+	return nil
+}
+
+// blockedHandlerErr wraps the sentinel with a message the executor can log.
+func blockedHandlerErr(result *Result) error {
+	kind := "unknown"
+	page := 0
+	if result.Blocker != nil {
+		kind = string(result.Blocker.Kind)
+		page = result.Blocker.Page
+	}
+	return fmt.Errorf("scrape: blocked (%s at page %d): %w", kind, page, jobs.ErrHandlerCompleted)
 }
 
 // entryURLFor picks the URL the scrape tab should open at.
