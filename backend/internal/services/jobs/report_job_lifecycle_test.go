@@ -109,6 +109,12 @@ func TestCancelJob_AlreadyCompletedIgnored(t *testing.T) {
 		t.Fatalf("AddJob error: %v", err)
 	}
 
+	// Take the job through running first: that is the only route production uses
+	// (ClaimNextJob sets running, then the executor completes it), and status
+	// transitions are guarded, so a direct pending -> completed jump is refused.
+	if err := qm.UpdateStatus(job.ID, models.JobStatusRunning, ""); err != nil {
+		t.Fatalf("UpdateStatus(running) error: %v", err)
+	}
 	if err := qm.CompleteJobWithResult(job.ID, "ok"); err != nil {
 		t.Fatalf("CompleteJobWithResult error: %v", err)
 	}
@@ -532,6 +538,9 @@ func TestJobStats_CancellationCounted(t *testing.T) {
 	j2, _ := qm.AddJob(models.CreateJobRequest{Type: "job_b", Data: `{}`})
 	_, _ = qm.AddJob(models.CreateJobRequest{Type: "job_c", Data: `{}`})
 
+	// running first: status transitions are guarded, so completion is only
+	// reachable from the status a claimed job actually holds.
+	_ = qm.UpdateStatus(j1.ID, models.JobStatusRunning, "")
 	_ = qm.CompleteJobWithResult(j1.ID, "done")
 	_ = qm.CancelJob(j2.ID)
 

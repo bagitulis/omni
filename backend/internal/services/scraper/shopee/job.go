@@ -55,6 +55,12 @@ type ScrapeJobData struct {
 	BaseURL     string `json:"base_url,omitempty"`
 	ExtensionID string `json:"extension_id"`
 
+	// StartPage is the 1-based page a resumed run begins at. Zero means "start at
+	// the beginning"; it is set from the resume cursor recorded when a run was
+	// blocked, so the operator who cleared a captcha does not have to re-scrape
+	// everything that already succeeded.
+	StartPage int `json:"start_page,omitempty"`
+
 	// ResultsJobID, when set, is the id scraped products are grouped under. It
 	// lets the caller correlate rows with a job it already created.
 	ResultsJobID string `json:"results_job_id,omitempty"`
@@ -131,7 +137,16 @@ func deriveJobID(now func() time.Time) string {
 }
 
 // run performs the scrape and persists the results.
+//
+// A run that stops for any reason other than "it saw everything it was allowed
+// to see" reports an error, even though scraper.Run returned none. That is the
+// whole correction: a captcha, an operator's stop, and a Shopee redesign used to
+// arrive here as nil errors and were written to the job queue as completions.
 func (s *ScrapeService) run(ctx context.Context, db *gorm.DB, data *ScrapeJobData, jobID string) (string, error) {
+	if err := validateStartPage(data); err != nil {
+		return "", err
+	}
+
 	sender := NewHubSender(s.hub, data.ExtensionID)
 
 	// Open a dedicated tab so the scrape does not disturb, or get disturbed by,
@@ -158,6 +173,7 @@ func (s *ScrapeService) run(ctx context.Context, db *gorm.DB, data *ScrapeJobDat
 		MaxPages:    data.MaxPages,
 		MaxProducts: data.MaxProducts,
 		BaseURL:     data.BaseURL,
+		StartPage:   data.StartPage,
 	}
 
 	result, err := scraper.Run(ctx, cfg)
@@ -165,6 +181,9 @@ func (s *ScrapeService) run(ctx context.Context, db *gorm.DB, data *ScrapeJobDat
 		return "", fmt.Errorf("scrape: run: %w", err)
 	}
 
+	// Products are persisted before the outcome is judged: a blocked or cancelled
+	// run still collected real rows up to the point it stopped, and discarding
+	// them would make the operator re-scrape pages that already succeeded.
 	if len(result.Products) > 0 {
 		rows := toScrapedProducts(result.Products, jobID, data)
 		if insErr := repo.InsertScrapedProducts(ctx, rows); insErr != nil {
@@ -173,15 +192,22 @@ func (s *ScrapeService) run(ctx context.Context, db *gorm.DB, data *ScrapeJobDat
 		persisted = len(rows)
 	}
 
-	summary, _ := json.Marshal(map[string]any{
-		"job_id":       jobID,
-		"products":     persisted,
-		"pages":        result.Pages,
-		"source":       result.Source,
-		"extension_id": data.ExtensionID,
-		"mode":         data.Mode,
-	})
-	return string(summary), nil
+	summary := buildSummary(result, data, jobID, persisted)
+
+	// Re-check the context independently of the stop reason. The scraper can
+	// finish its last page just as the deadline expires, and without this the
+	// executor's select could record a completion for a run that was cancelled.
+	if ctxErr := ctx.Err(); ctxErr != nil {
+		return summary, fmt.Errorf("scrape: stopped after %d page(s): %w", result.Pages, ctxErr)
+	}
+
+	if outcomeErr := scrapeOutcomeError(result); outcomeErr != nil {
+		// The summary is returned alongside the error so the partial results and
+		// the resume cursor are not lost with it.
+		return summary, outcomeErr
+	}
+
+	return summary, nil
 }
 
 // entryURLFor picks the URL the scrape tab should open at.

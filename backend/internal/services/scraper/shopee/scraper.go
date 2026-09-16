@@ -4,7 +4,6 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"github.com/omni/backend/internal/models"
 	"strings"
 )
 
@@ -37,6 +36,13 @@ type Config struct {
 	MaxProducts int
 	BaseURL     string
 
+	// StartPage is the 1-based page to begin at. Zero or less means page 1.
+	//
+	// MaxPages counts pages captured in THIS run, so a resume gets a full budget
+	// rather than the remainder of the original one: the loop's bound is derived
+	// from StartPage, not fixed at MaxPages.
+	StartPage int
+
 	// OnPage is called after each page is captured, for progress reporting. It
 	// must not block. page is 1-based; captured is the running total.
 	OnPage func(page, captured int)
@@ -45,11 +51,27 @@ type Config struct {
 // Result is the outcome of a scrape run.
 type Result struct {
 	Products []ParsedProduct
-	Pages    int
+	// Pages counts the pages captured in THIS run. On a resume it is not the
+	// absolute page number: a run resuming at page 5 and capturing two pages
+	// reports 2, so the figure always answers "how much did this run do".
+	Pages int
 	// Source records which capture path produced the data: "network", "dom", or
 	// "" when nothing was captured. Exposed so an operator can tell whether the
 	// preferred path is working in production.
 	Source string
+
+	// Reason records why the run stopped. The job layer maps it to a job status,
+	// so an honest value here is what keeps a blocked or cancelled scrape from
+	// being recorded as a completed one.
+	Reason StopReason
+
+	// Blocker is set only when Reason is StopBlocked.
+	Blocker *Blocker
+
+	// BrokenPage is the 1-based page on which every selector set missed. Set only
+	// when Reason is StopSelectorsBroken, so the failure message can name the
+	// page someone has to open to fix the selectors.
+	BrokenPage int
 }
 
 // Defaults and limits.
@@ -96,6 +118,11 @@ func (s *Scraper) Run(ctx context.Context, cfg Config) (*Result, error) {
 		if strings.TrimSpace(cfg.ProductURL) == "" {
 			return nil, fmt.Errorf("scraper: product_url is required for product mode")
 		}
+		// A product detail page has no page 2, so a resume cursor past the first
+		// page would navigate nowhere and report an empty success.
+		if cfg.StartPage > 1 {
+			return nil, fmt.Errorf("scraper: start_page %d is not valid for product mode", cfg.StartPage)
+		}
 	default:
 		return nil, fmt.Errorf("scraper: unsupported mode %q", cfg.Mode)
 	}
@@ -122,26 +149,49 @@ func (s *Scraper) runPaginated(ctx context.Context, cfg Config) (*Result, error)
 	seen := make(map[string]bool)
 	consecutiveEmpty := 0
 
-	for page := 1; page <= maxPages; page++ {
+	// A resumed run starts at its cursor and still gets the full page budget.
+	// The loop bound is derived rather than fixed at maxPages because maxPages
+	// means "pages captured in this run": using it as an absolute last-page
+	// number would silently shrink a resume from page 5 to 46 pages instead of 50.
+	startPage := normaliseStartPage(cfg.StartPage)
+	lastPage := startPage + maxPages - 1
+
+	for page := startPage; page <= lastPage; page++ {
 		if err := ctx.Err(); err != nil {
 			// A cancelled context is a normal stop (the operator pressed stop),
-			// so partial results are returned rather than discarded.
+			// so partial results are returned rather than discarded — but the
+			// reason must say so, or the job layer records a completion.
+			res.Reason = StopCancelled
 			break
 		}
 		if len(res.Products) >= maxProducts {
+			res.Reason = StopMaxProducts
 			break
 		}
 
-		pageProducts, err := s.capturePage(ctx, cfg, baseURL, page)
+		pageProducts, capture, err := s.capturePage(ctx, cfg, baseURL, page)
 		if err != nil {
 			if len(res.Products) > 0 {
 				// Fail soft once we have something: a failure on a later page
 				// must not throw away the pages already collected.
+				res.Reason = StopPageError
 				break
 			}
 			return nil, err
 		}
-		res.Pages = page
+		// Count pages captured by this run, not the absolute page number: on a
+		// resume the latter would report progress the run never made.
+		res.Pages = page - startPage + 1
+
+		// No product grid anywhere on the page means the markup changed. This is
+		// only trustworthy when the network path also came up empty: capturePage
+		// prefers the network, so on a healthy page the DOM selectors are never
+		// consulted and their verdict would be meaningless.
+		if capture.selectorsMissed {
+			res.Reason = StopSelectorsBroken
+			res.BrokenPage = page
+			break
+		}
 
 		if len(pageProducts) == 0 {
 			consecutiveEmpty++
@@ -153,18 +203,22 @@ func (s *Scraper) runPaginated(ctx context.Context, cfg Config) (*Result, error)
 				cfg.OnPage(page, len(res.Products))
 			}
 			if consecutiveEmpty >= emptyPagesBeforeStop {
+				res.Reason = StopEmptyPages
 				break
 			}
 			// Try the next page rather than stopping on the first empty one.
-			if page < maxPages && !s.isLastPage(ctx) {
+			if page < lastPage && !s.isLastPage(ctx) {
 				if s.pageURL(cfg, page+1) == "" {
+					res.Reason = StopLastPage
 					break
 				}
 				if nextErr := s.nextPage(ctx); nextErr != nil {
+					res.Reason = StopPageError
 					break
 				}
 				continue
 			}
+			res.Reason = StopLastPage
 			break
 		}
 		consecutiveEmpty = 0
@@ -192,90 +246,39 @@ func (s *Scraper) runPaginated(ctx context.Context, cfg Config) (*Result, error)
 		}
 
 		if len(res.Products) >= maxProducts {
+			res.Reason = StopMaxProducts
 			break
 		}
 		// Stop once the page reported itself as last.
 		if s.isLastPage(ctx) {
+			res.Reason = StopLastPage
 			break
 		}
-		if page < maxPages {
+		if page < lastPage {
 			// A mode with no further pages (product detail) yields no URL, so
 			// there is nothing more to capture. Without this the loop would
 			// re-navigate to the same page until maxPages.
 			if s.pageURL(cfg, page+1) == "" {
+				res.Reason = StopLastPage
 				break
 			}
 			if nextErr := s.nextPage(ctx); nextErr != nil {
+				res.Reason = StopPageError
 				break
 			}
+			continue
 		}
+		// The loop is about to end on its own bound, which is the page budget
+		// rather than the end of the catalogue.
+		res.Reason = StopMaxPages
+	}
+
+	if res.Reason == "" {
+		// Reached only when maxPages was exhausted without any other exit firing.
+		res.Reason = StopMaxPages
 	}
 
 	return res, nil
-}
-
-// capturePage captures one page, preferring network over DOM.
-//
-// Network-first because Shopee's own responses are structured JSON; the DOM path
-// exists only so that a blocked or changed API does not stop collection
-// entirely. The source is recorded so it is visible when the fallback is doing
-// the work in production.
-func (s *Scraper) capturePage(ctx context.Context, cfg Config, baseURL string, page int) ([]ParsedProduct, error) {
-	// Arm the observer BEFORE navigating so the page's own requests are seen.
-	// The observer hooks fetch/XHR when it loads; anything already in flight is
-	// missed, which is why this is not done after the navigation.
-	if _, err := s.sender.Send(ctx, "install_observer", map[string]any{}); err != nil {
-		// Non-fatal: the DOM path can still work.
-		_ = err
-	}
-
-	if err := s.navigate(ctx, cfg, page); err != nil {
-		return nil, err
-	}
-
-	if err := s.scroll(ctx); err != nil {
-		// Scrolling failure only means lazy content may be missing; extraction
-		// still runs rather than discarding the page.
-		_ = err
-	}
-
-	// Network first.
-	if products, err := s.fromNetwork(ctx, baseURL); err == nil && len(products) > 0 {
-		markSource(products, models.ScrapeSourceNetwork)
-		return products, nil
-	}
-
-	// DOM fallback.
-	products, err := s.fromDOM(ctx, baseURL)
-	if err != nil {
-		return nil, err
-	}
-	markSource(products, models.ScrapeSourceDOM)
-	return products, nil
-}
-
-// markSource stamps the capture path onto each product.
-//
-// Done centrally so a path cannot forget to label its output, which would make
-// it impossible to tell from the data whether the fallback is carrying
-// production traffic.
-func markSource(products []ParsedProduct, source string) {
-	for i := range products {
-		products[i].Source = source
-	}
-}
-
-// navigate opens the URL for the requested page.
-func (s *Scraper) navigate(ctx context.Context, cfg Config, page int) error {
-	url := s.pageURL(cfg, page)
-	if url == "" {
-		return fmt.Errorf("scraper: no URL for mode %q", cfg.Mode)
-	}
-	_, err := s.sender.Send(ctx, "goto", map[string]any{"url": url})
-	if err != nil {
-		return fmt.Errorf("scraper: navigate to %s: %w", url, err)
-	}
-	return nil
 }
 
 // pageURL builds the URL for a 1-based page number.
@@ -319,136 +322,6 @@ func (s *Scraper) pageURL(cfg Config, page int) string {
 		sep = "&"
 	}
 	return fmt.Sprintf("%s%spage=%d", url, sep, page-1)
-}
-
-func (s *Scraper) scroll(ctx context.Context) error {
-	_, err := s.sender.Send(ctx, "smart_scroll", map[string]any{
-		"step": 800, "waitTime": 900, "maxSteps": 25,
-	})
-	return err
-}
-
-func (s *Scraper) isLastPage(ctx context.Context) bool {
-	raw, err := s.sender.Send(ctx, "check_last_page", map[string]any{})
-	if err != nil {
-		// Unknown means "not known to be last"; stopping early would truncate a
-		// scrape on a transient failure.
-		return false
-	}
-	var out struct {
-		IsLast bool `json:"is_last"`
-	}
-	if json.Unmarshal(unwrapEnvelope(raw), &out) != nil {
-		return false
-	}
-	return out.IsLast
-}
-
-func (s *Scraper) nextPage(ctx context.Context) error {
-	_, err := s.sender.Send(ctx, "click_next", map[string]any{})
-	return err
-}
-
-// fromNetwork reads captured API responses and parses the products out.
-//
-// The content script replies with an envelope — {"success":true,"data":{...}} —
-// so the payload is unwrapped first. Every captured response is then tried
-// newest-first, because one page can produce several matching calls and only one
-// carries the listing.
-func (s *Scraper) fromNetwork(ctx context.Context, baseURL string) ([]ParsedProduct, error) {
-	raw, err := s.sender.Send(ctx, "observe_network", map[string]any{
-		"filter": "search_items",
-		"limit":  5,
-	})
-	if err != nil {
-		return nil, err
-	}
-
-	// Unwrap the envelope. A bare object is accepted too, so the content
-	// script's wrapper can change without breaking capture.
-	payload := unwrapEnvelope(raw)
-
-	var captured struct {
-		Responses []struct {
-			Status int    `json:"status"`
-			URL    string `json:"url"`
-			Body   string `json:"body"`
-		} `json:"responses"`
-	}
-	if err := json.Unmarshal(payload, &captured); err != nil {
-		return nil, err
-	}
-
-	var all []ParsedProduct
-	for i := len(captured.Responses) - 1; i >= 0; i-- {
-		resp := captured.Responses[i]
-		if resp.Status != 200 || resp.Body == "" {
-			continue
-		}
-		products, parseErr := ParseSearchResponse([]byte(resp.Body), baseURL)
-		if parseErr != nil {
-			continue // try the next captured response
-		}
-
-		// Use the FIRST response that parses, then stop. Walking on would bleed a
-		// previous page's rows into the current one: a valid-but-empty response
-		// for this page is a real answer, and appending an older page's products
-		// would stamp them with the wrong page number and stop the empty-page
-		// counter from advancing, so the scrape would never detect the end.
-		all = append(all, products...)
-		if len(all) >= maxProductsPerPage {
-			all = all[:maxProductsPerPage]
-		}
-		return all, nil
-	}
-	return nil, nil
-}
-
-// unwrapEnvelope returns the "data" member of a content-script reply, or the
-// input unchanged when there is no usable envelope.
-//
-// An explicit `"data": null` must NOT be treated as a payload: returning it
-// discards any sibling fields, and unmarshalling the literal `null` into a
-// struct silently succeeds with a zero value. A reply like
-// {"data":null,"responses":[...]} would then lose its responses entirely and
-// look like a genuinely empty result.
-func unwrapEnvelope(raw json.RawMessage) json.RawMessage {
-	var envelope struct {
-		Data json.RawMessage `json:"data"`
-	}
-	if err := json.Unmarshal(raw, &envelope); err != nil {
-		return raw
-	}
-	if !isUsableJSONPayload(envelope.Data) {
-		return raw
-	}
-	return envelope.Data
-}
-
-// isUsableJSONPayload reports whether a raw JSON value is present and non-null.
-func isUsableJSONPayload(raw json.RawMessage) bool {
-	if len(raw) == 0 {
-		return false
-	}
-	trimmed := strings.TrimSpace(string(raw))
-	return trimmed != "" && trimmed != "null"
-}
-
-// fromDOM asks the content script to extract product cards.
-func (s *Scraper) fromDOM(ctx context.Context, baseURL string) ([]ParsedProduct, error) {
-	raw, err := s.sender.Send(ctx, "extract", map[string]any{})
-	if err != nil {
-		return nil, fmt.Errorf("scraper: DOM extraction: %w", err)
-	}
-
-	products, err := ParseDOMProducts(unwrapEnvelope(raw), baseURL)
-	if err != nil {
-		return nil, fmt.Errorf("scraper: parse DOM products: %w", err)
-	}
-	if len(products) > maxProductsPerPage {
-		products = products[:maxProductsPerPage]
-	}
-	return products, nil
 }
 
 // urlEncode percent-encodes a query term.

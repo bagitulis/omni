@@ -2,6 +2,7 @@ package jobs
 
 import (
 	"encoding/json"
+	"fmt"
 	"time"
 
 	"github.com/google/uuid"
@@ -121,7 +122,11 @@ func (m *QueueManager) RecoverZombieJobs() (int64, error) {
 	return result.RowsAffected, result.Error
 }
 
-// UpdateStatus updates job status
+// UpdateStatus updates job status, refusing transitions that are not legal.
+//
+// The legality check is folded into the WHERE clause rather than done as a read
+// followed by a write: a separate read leaves a window in which a sweep or a
+// cancel changes the status, and the write would then clobber it.
 func (m *QueueManager) UpdateStatus(jobID string, status models.JobStatus, errMsg string) error {
 	updates := map[string]interface{}{
 		"status":     status,
@@ -137,11 +142,35 @@ func (m *QueueManager) UpdateStatus(jobID string, status models.JobStatus, errMs
 		now := time.Now()
 		updates["started_at"] = &now
 	case models.JobStatusCompleted, models.JobStatusFailed:
+		// Deliberately excludes blocked and cancelled-from-blocked: a blocked job
+		// has not completed, and stamping completed_at would make it look
+		// finished to every query that filters on it.
 		now := time.Now()
 		updates["completed_at"] = &now
 	}
 
-	return m.db.Model(&models.Job{}).Where("id = ?", jobID).Updates(updates).Error
+	return m.updateGuarded(jobID, status, updates)
+}
+
+// updateGuarded applies updates only when the job's current status permits the
+// move to status, and reports a refusal as an error rather than a silent no-op.
+func (m *QueueManager) updateGuarded(jobID string, status models.JobStatus, updates map[string]interface{}) error {
+	res := m.db.Model(&models.Job{}).
+		Where("id = ? AND status IN ?", jobID, legalSources(status)).
+		Updates(updates)
+	if res.Error != nil {
+		return res.Error
+	}
+	if res.RowsAffected == 0 {
+		// Either the job is gone or its current status forbids the move. Read it
+		// back so the error names which, instead of leaving the caller guessing.
+		current, err := m.GetJob(jobID)
+		if err != nil {
+			return fmt.Errorf("job %s: cannot set status %s: %w", jobID, status, err)
+		}
+		return errIllegalTransition(jobID, current.Status, status)
+	}
+	return nil
 }
 
 // GetJob retrieves a job by ID
@@ -183,10 +212,14 @@ func (m *QueueManager) ListJobs(filter models.JobFilter) ([]models.Job, int64, e
 	return jobs, total, err
 }
 
-// CancelJob cancels a pending job
+// CancelJob cancels a job that has not started or is waiting on an operator.
+//
+// A blocked job is cancellable so the operator can abandon a captcha they do not
+// want to solve; without it such a job could only be waited out.
 func (m *QueueManager) CancelJob(jobID string) error {
 	return m.db.Model(&models.Job{}).
-		Where("id = ? AND status = ?", jobID, models.JobStatusPending).
+		Where("id = ? AND status IN ?", jobID,
+			[]models.JobStatus{models.JobStatusPending, models.JobStatusBlocked}).
 		Update("status", models.JobStatusCancelled).Error
 }
 
@@ -268,7 +301,11 @@ func (m *QueueManager) UpdateProgress(jobID string, percent, processed, total in
 	}).Error
 }
 
-// CompleteJobWithResult marks job as completed and stores result data
+// CompleteJobWithResult marks job as completed and stores result data.
+//
+// Guarded: a job that was blocked, cancelled, or already finished must not be
+// rewritten as a success. That is the precise shape of the defect this change
+// exists to remove — a scrape stopped by a captcha reported as completed.
 func (m *QueueManager) CompleteJobWithResult(jobID string, resultData interface{}) error {
 	resultJSON, err := SerializePayload(resultData)
 	if err != nil {
@@ -276,24 +313,24 @@ func (m *QueueManager) CompleteJobWithResult(jobID string, resultData interface{
 	}
 
 	now := time.Now()
-	return m.db.Model(&models.Job{}).Where("id = ?", jobID).Updates(map[string]interface{}{
+	return m.updateGuarded(jobID, models.JobStatusCompleted, map[string]interface{}{
 		"status":           models.JobStatusCompleted,
 		"progress_percent": 100,
 		"result_data":      resultJSON,
 		"completed_at":     &now,
 		"updated_at":       now,
-	}).Error
+	})
 }
 
-// FailJob marks job as failed with error message
+// FailJob marks job as failed with error message.
 func (m *QueueManager) FailJob(jobID string, errMsg string) error {
 	now := time.Now()
-	return m.db.Model(&models.Job{}).Where("id = ?", jobID).Updates(map[string]interface{}{
+	return m.updateGuarded(jobID, models.JobStatusFailed, map[string]interface{}{
 		"status":        models.JobStatusFailed,
 		"error_message": errMsg,
 		"completed_at":  &now,
 		"updated_at":    now,
-	}).Error
+	})
 }
 
 // GetRunningJobs returns all currently running jobs

@@ -11,6 +11,11 @@ const (
 	JobStatusCompleted JobStatus = "completed"
 	JobStatusFailed    JobStatus = "failed"
 	JobStatusCancelled JobStatus = "cancelled"
+	// JobStatusBlocked means the job stopped on an obstacle a human must clear
+	// (a captcha, a login wall) and can be resumed once they have. It is
+	// deliberately not terminal: the job keeps its resume cursor, so sweeps that
+	// reclaim abandoned work must not treat the elapsed time as a hung worker.
+	JobStatusBlocked JobStatus = "blocked"
 )
 
 // Job represents a queued job
