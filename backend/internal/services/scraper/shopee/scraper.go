@@ -179,6 +179,15 @@ func (s *Scraper) runPaginated(ctx context.Context, cfg Config) (*Result, error)
 			}
 			return nil, err
 		}
+
+		// A challenge page yielded nothing and is where a resume must restart, so
+		// it is not counted among the pages this run captured.
+		if capture.blocker != nil {
+			res.Reason = StopBlocked
+			res.Blocker = capture.blocker
+			break
+		}
+
 		// Count pages captured by this run, not the absolute page number: on a
 		// resume the latter would report progress the run never made.
 		res.Pages = page - startPage + 1

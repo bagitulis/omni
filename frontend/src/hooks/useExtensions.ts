@@ -13,28 +13,46 @@ import {
   unpairExtension,
   type ScrapeRequest,
 } from "@/api/extensions";
+import { pollingFailureNotice } from "@/lib/queryFailure";
 
 const EXTENSIONS_KEY = ["extensions"] as const;
 const PRODUCTS_KEY = ["extensions", "scraped-products"] as const;
 
+/**
+ * Poll the paired extensions.
+ *
+ * `failureNotice` is returned alongside the query so every consumer sees a
+ * repeated polling failure. Without it the interval keeps firing silently and
+ * the page goes on presenting stale connection states as current.
+ */
 export function useExtensions() {
-  return useQuery({
+  const query = useQuery({
     queryKey: EXTENSIONS_KEY,
-    queryFn: listExtensions,
+    queryFn: ({ signal }) => listExtensions(signal),
     // Extensions connect and disconnect on their own schedule, so a periodic
     // refresh keeps the status honest without the user reloading.
     refetchInterval: 15000,
   });
+
+  return {
+    ...query,
+    failureNotice: pollingFailureNotice({
+      subject: "extensions",
+      failureCount: query.failureCount,
+      hasData: query.data !== undefined,
+      message: (query.error as Error | null)?.message,
+    }),
+  };
 }
 
 export function useGeneratePairingCode() {
-  return useMutation({ mutationFn: generatePairingCode });
+  return useMutation({ mutationFn: () => generatePairingCode() });
 }
 
 export function useUnpairExtension() {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: unpairExtension,
+    mutationFn: (extensionId: string) => unpairExtension(extensionId),
     onSuccess: () => {
       void queryClient.invalidateQueries({ queryKey: EXTENSIONS_KEY });
     },
@@ -68,7 +86,8 @@ export function useScrapedProducts(
 
   return useQuery({
     queryKey: [...PRODUCTS_KEY, safeJobId, page, pageSize],
-    queryFn: () => listScrapedProducts(safeJobId, page, pageSize),
+    queryFn: ({ signal }) =>
+      listScrapedProducts(safeJobId, page, pageSize, signal),
     // Nothing to fetch until a run has produced rows.
     enabled: safeJobId.length > 0,
     // A finished run's rows do not change, so there is no value in refetching on

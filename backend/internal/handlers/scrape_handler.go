@@ -8,6 +8,7 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
 	"github.com/omni/backend/internal/dto/response"
+	"github.com/omni/backend/internal/extensions"
 	"github.com/omni/backend/internal/models"
 	"github.com/omni/backend/internal/repositories"
 	"github.com/omni/backend/internal/services/jobs"
@@ -153,6 +154,13 @@ func validateScrapeRequest(body startScrapeRequest) error {
 		}
 	default:
 		return errText("mode must be one of: search, shop, product")
+	}
+
+	// binding:"required" only proves the field is non-empty. The identifier is
+	// browser-supplied and ends up in lookups and log lines, so it goes through
+	// the same validation as every other path that accepts one.
+	if err := extensions.ValidateExtensionID(body.ExtensionID); err != nil {
+		return errText(err.Error())
 	}
 	return nil
 }

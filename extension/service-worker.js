@@ -40,6 +40,93 @@ let activeTaskId = null;
 // rejected again on the next attempt, re-setting the flag.
 let authRejected = false;
 
+// ─── Pending results ────────────────────────────────────────────────────────
+
+// How many unsent command results to hold while the socket is down.
+export const PENDING_RESULT_LIMIT = 20;
+
+/**
+ * A bounded FIFO of command results that could not be sent.
+ *
+ * send() returns false when the socket is not OPEN, and the result was being
+ * discarded: the backend then waited out its full 60s timeout for a reply that
+ * no longer existed. Queuing lets a result that was produced during a brief
+ * reconnect still reach the server.
+ *
+ * Bounded because an extension left offline must not accumulate these forever.
+ * The oldest are dropped rather than the newest: the backend has already timed
+ * out on them, while a recent result may still have a caller waiting.
+ *
+ * Scope, so this is not mistaken for more than it is: the queue lives in worker
+ * memory and does NOT survive MV3 terminating the worker, and the backend's 60s
+ * bound remains the real deadline either way.
+ */
+export function makeResultQueue(limit = PENDING_RESULT_LIMIT) {
+  const queue = [];
+  return {
+    enqueue(envelope) {
+      queue.push(envelope);
+      while (queue.length > limit) queue.shift();
+      return queue.length;
+    },
+    drain() {
+      return queue.splice(0, queue.length);
+    },
+    size() {
+      return queue.length;
+    },
+  };
+}
+
+const pendingResults = makeResultQueue();
+
+// ─── Bounded waits ──────────────────────────────────────────────────────────
+
+// How long to wait for a content script to answer one command.
+const CONTENT_COMMAND_TIMEOUT_MS = 20000;
+
+/**
+ * Resolve a promise, or a timeout result, whichever comes first.
+ *
+ * Never rejects: the caller is a command dispatcher whose contract is to return
+ * a result envelope. A late answer after the timeout is discarded, because the
+ * caller has already been told the command timed out.
+ */
+export function withTimeout(promise, ms, action) {
+  return new Promise((resolve) => {
+    let settled = false;
+    const settle = (value) => {
+      if (settled) return;
+      settled = true;
+      clearTimeout(timer);
+      resolve(value);
+    };
+
+    const timer = setTimeout(
+      () => settle({ success: false, error: `timeout after ${ms}ms waiting for ${action}` }),
+      ms,
+    );
+
+    promise.then(
+      (value) => settle(value),
+      (err) => settle({ success: false, error: String(err) }),
+    );
+  });
+}
+
+/**
+ * Classify how a tab load ended.
+ *
+ * A tab that was closed or crashed used to resolve through the same path as a
+ * successful load, so navigation failures were invisible to the caller.
+ */
+export function classifyLoadOutcome({ completeEventFired, tabLookupFailed, timedOut }) {
+  if (completeEventFired) return 'loaded';
+  if (tabLookupFailed) return 'gone';
+  if (timedOut) return 'timeout';
+  return 'loaded';
+}
+
 // ─── Storage helpers ────────────────────────────────────────────────────────
 
 async function getConfig() {
@@ -221,6 +308,7 @@ async function handleServerMessage(msg) {
     wsReady = true;
     authRejected = false;
     await setConnectionStatus('connected');
+    flushPendingResults();
     return;
   }
 
@@ -240,12 +328,40 @@ async function handleServerMessage(msg) {
 
   if (type === 'command') {
     const result = await runCommand(action, payload || {});
-    send({
+    sendResult({
       id,
       type: result.success ? 'result' : 'error',
       action,
       payload: result,
     });
+  }
+}
+
+/**
+ * Send a command result, holding it for the next authenticated socket when the
+ * current one is not usable.
+ *
+ * The return value of send() used to be ignored here, so a result produced
+ * during a reconnect was destroyed and the backend waited out its whole timeout.
+ */
+function sendResult(envelope) {
+  if (send(envelope)) return true;
+  pendingResults.enqueue(envelope);
+  return false;
+}
+
+/**
+ * Flush queued results after the server accepts the credential.
+ *
+ * Anything that fails again is re-queued rather than dropped, so a socket that
+ * dies mid-flush does not lose the remainder.
+ */
+function flushPendingResults() {
+  for (const envelope of pendingResults.drain()) {
+    if (!send(envelope)) {
+      pendingResults.enqueue(envelope);
+      break;
+    }
   }
 }
 
@@ -287,8 +403,14 @@ async function openTab({ url, active = false }) {
   } catch {
     /* activation is best effort */
   }
-  await waitForTabLoad(tab.id, 30000);
-  return { success: true, data: { tab_id: tab.id } };
+  const outcome = await waitForTabLoad(tab.id, 30000);
+  if (outcome === 'gone') {
+    return { success: false, error: 'tab closed before it finished loading' };
+  }
+  // A timeout is reported as success with the outcome attached: the page may
+  // still be usable (Shopee keeps long-lived connections open, so 'complete'
+  // can lag), and failing here would abandon a scrape that would have worked.
+  return { success: true, data: { tab_id: tab.id, load_outcome: outcome } };
 }
 
 async function closeTab({ tab_id }) {
@@ -305,14 +427,21 @@ async function closeTab({ tab_id }) {
 async function goto({ tab_id, url }) {
   if (!tab_id) return { success: false, error: 'tab_id is required' };
   await chrome.tabs.update(tab_id, { url });
-  await waitForTabLoad(tab_id, 20000);
-  return { success: true, data: { tab_id, url } };
+  const outcome = await waitForTabLoad(tab_id, 20000);
+  if (outcome === 'gone') {
+    return { success: false, error: `tab ${tab_id} disappeared while navigating to ${url}` };
+  }
+  return { success: true, data: { tab_id, url, load_outcome: outcome } };
 }
 
 async function reload({ tab_id }) {
   if (tab_id) {
     await chrome.tabs.reload(tab_id);
-    await waitForTabLoad(tab_id, 20000);
+    const outcome = await waitForTabLoad(tab_id, 20000);
+    if (outcome === 'gone') {
+      return { success: false, error: `tab ${tab_id} disappeared while reloading` };
+    }
+    return { success: true, data: { load_outcome: outcome } };
   }
   return { success: true, data: null };
 }
@@ -323,29 +452,40 @@ async function waitMs({ ms = 0 }) {
   return { success: true, data: null };
 }
 
+/**
+ * Wait for a tab to finish loading and report how the wait ended.
+ *
+ * Resolves with 'loaded', 'gone', or 'timeout'. The distinction matters: a tab
+ * that was closed or crashed used to resolve through the same path as a
+ * successful load, so a navigation failure was invisible to the caller and the
+ * scrape carried on against a tab that was not there.
+ */
 function waitForTabLoad(tabId, timeoutMs) {
   return new Promise((resolve) => {
     let settled = false;
-    const finish = () => {
+    const finish = (outcome) => {
       if (settled) return;
       settled = true;
       chrome.tabs.onUpdated.removeListener(listener);
       clearTimeout(timer);
-      resolve();
+      resolve(classifyLoadOutcome(outcome));
     };
 
     const listener = (id, info) => {
-      if (id === tabId && info.status === 'complete') finish();
+      if (id === tabId && info.status === 'complete') finish({ completeEventFired: true });
     };
 
     chrome.tabs.onUpdated.addListener(listener);
-    const timer = setTimeout(finish, timeoutMs);
+    const timer = setTimeout(() => finish({ timedOut: true }), timeoutMs);
 
     // A tab that is already complete never fires onUpdated; resolve immediately
     // so the caller does not block for the full timeout.
-    chrome.tabs.get(tabId).then((tab) => {
-      if (tab && tab.status === 'complete') finish();
-    }).catch(finish);
+    chrome.tabs
+      .get(tabId)
+      .then((tab) => {
+        if (tab && tab.status === 'complete') finish({ completeEventFired: true });
+      })
+      .catch(() => finish({ tabLookupFailed: true }));
   });
 }
 
@@ -363,7 +503,11 @@ async function forwardToContent(action, payload) {
   }
 
   try {
-    const response = await chrome.tabs.sendMessage(tabId, { type: 'command', action, payload });
+    const response = await withTimeout(
+      chrome.tabs.sendMessage(tabId, { type: 'command', action, payload }),
+      CONTENT_COMMAND_TIMEOUT_MS,
+      action,
+    );
     return response || { success: false, error: 'no response from content script' };
   } catch (err) {
     return { success: false, error: String(err) };
@@ -400,89 +544,111 @@ export function isSupportedUrl(url) {
 
 // ─── Lifecycle ──────────────────────────────────────────────────────────────
 
-chrome.runtime.onInstalled.addListener(async ({ reason }) => {
-  if (reason === 'install') {
-    const existing = await chrome.storage.local.get(['extensionId']);
-    if (!existing.extensionId) {
-      await chrome.storage.local.set({ extensionId: crypto.randomUUID() });
-    }
-  }
-  chrome.alarms.create(KEEPALIVE_ALARM, { periodInMinutes: ALARM_PERIOD_MINUTES });
-  connect();
-});
+// Listener registration is guarded so this module can be imported by the test
+// runner, which has no chrome API. Inside Chrome the guard is always true, so
+// the worker's behaviour is unchanged; outside it, the pure helpers above become
+// testable against the shipped file rather than against a copy of themselves.
+const inExtensionRuntime = typeof chrome !== 'undefined' && Boolean(chrome?.runtime?.onInstalled);
 
-chrome.runtime.onStartup.addListener(async () => {
-  const alarm = await chrome.alarms.get(KEEPALIVE_ALARM);
-  if (!alarm) {
+if (inExtensionRuntime) {
+  chrome.runtime.onInstalled.addListener(async ({ reason }) => {
+    if (reason === 'install') {
+      const existing = await chrome.storage.local.get(['extensionId']);
+      if (!existing.extensionId) {
+        await chrome.storage.local.set({ extensionId: crypto.randomUUID() });
+      }
+    }
     chrome.alarms.create(KEEPALIVE_ALARM, { periodInMinutes: ALARM_PERIOD_MINUTES });
-  }
-  connect();
-});
-
-// The alarm is the primary survival mechanism: it fires even after the worker
-// was terminated, which is what re-establishes the socket.
-chrome.alarms.onAlarm.addListener(async (alarm) => {
-  if (alarm.name !== KEEPALIVE_ALARM) return;
-
-  // Do not resurrect a connection the server has rejected. The alarm would
-  // otherwise retry a dead credential every 25 seconds forever, which is the
-  // exact behaviour the authRejected flag exists to prevent.
-  if (authRejected) return;
-
-  if (!ws || ws.readyState !== WebSocket.OPEN) {
     connect();
-  } else {
-    send({ type: 'ping' });
-  }
-});
+  });
 
-// Popup and content-script requests.
-chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
-  // The MAIN-world observer must be injected by the worker, not the content
-  // script: an isolated-world hook would only observe the content script's own
-  // requests, never Shopee's page requests.
-  if (message?.type === 'install_main_observer') {
-    const tabId = sender?.tab?.id;
-    if (typeof tabId !== 'number') {
-      sendResponse({ ok: false, error: 'no tab id' });
-      return false;
+  chrome.runtime.onStartup.addListener(async () => {
+    const alarm = await chrome.alarms.get(KEEPALIVE_ALARM);
+    if (!alarm) {
+      chrome.alarms.create(KEEPALIVE_ALARM, { periodInMinutes: ALARM_PERIOD_MINUTES });
     }
-    chrome.scripting
-      .executeScript({
-        target: { tabId },
-        world: 'MAIN',
-        files: ['main-network-observer.js'],
-      })
-      .then(() => sendResponse({ ok: true }))
-      .catch((err) => sendResponse({ ok: false, error: String(err) }));
-    return true; // async response
-  }
-
-  if (message?.type === 'omni_reconnect') {
-    // An explicit user action overrides a previous rejection: the operator may
-    // have re-paired or the server may have been fixed, and refusing to retry
-    // would leave them stuck with no way to recover from the UI.
-    authRejected = false;
-    reconnectAttempt = 0;
-    disconnect();
     connect();
-    sendResponse({ ok: true });
-    return true;
-  }
-  if (message?.type === 'omni_status') {
-    chrome.storage.local
-      .get(['connectionStatus', 'connectionDetail', 'extensionId', 'serverUrl'])
-      .then((data) => sendResponse({ ...data, socketState: ws ? ws.readyState : -1, authenticated: wsReady }));
-    return true;
-  }
-  if (message?.type === 'omni_pair') {
-    pairWithCode(message.code, message.serverUrl)
-      .then(sendResponse)
-      .catch((err) => sendResponse({ success: false, error: String(err) }));
-    return true;
-  }
-  return false;
-});
+  });
+
+  // The alarm is the primary survival mechanism: it fires even after the worker
+  // was terminated, which is what re-establishes the socket.
+  chrome.alarms.onAlarm.addListener(async (alarm) => {
+    if (alarm.name !== KEEPALIVE_ALARM) return;
+
+    // Do not resurrect a connection the server has rejected. The alarm would
+    // otherwise retry a dead credential every 25 seconds forever, which is the
+    // exact behaviour the authRejected flag exists to prevent.
+    if (authRejected) return;
+
+    if (!ws || ws.readyState !== WebSocket.OPEN) {
+      connect();
+    } else {
+      send({ type: 'ping' });
+    }
+  });
+
+  // Popup and content-script requests.
+  chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
+    // The MAIN-world observer must be injected by the worker, not the content
+    // script: an isolated-world hook would only observe the content script's own
+    // requests, never Shopee's page requests.
+    if (message?.type === 'install_main_observer') {
+      const tabId = sender?.tab?.id;
+      if (typeof tabId !== 'number') {
+        sendResponse({ ok: false, error: 'no tab id' });
+        return false;
+      }
+      chrome.scripting
+        .executeScript({
+          target: { tabId },
+          world: 'MAIN',
+          files: ['main-network-observer.js'],
+        })
+        .then(() => sendResponse({ ok: true }))
+        .catch((err) => sendResponse({ ok: false, error: String(err) }));
+      return true; // async response
+    }
+
+    if (message?.type === 'omni_reconnect') {
+      // An explicit user action overrides a previous rejection: the operator may
+      // have re-paired or the server may have been fixed, and refusing to retry
+      // would leave them stuck with no way to recover from the UI.
+      authRejected = false;
+      reconnectAttempt = 0;
+      disconnect();
+      connect();
+      sendResponse({ ok: true });
+      return true;
+    }
+
+    // The overlay asks the server to resume a blocked job. It is relayed through
+    // the worker because the content script has no socket of its own, and giving
+    // it one would put a server credential in the page's process.
+    if (message?.type === 'omni_overlay_resume') {
+      sendResult({
+        type: 'command',
+        action: 'resume_scrape',
+        payload: { job_id: message.job_id || '' },
+      });
+      sendResponse({ ok: true });
+      return true;
+    }
+
+    if (message?.type === 'omni_status') {
+      chrome.storage.local
+        .get(['connectionStatus', 'connectionDetail', 'extensionId', 'serverUrl'])
+        .then((data) => sendResponse({ ...data, socketState: ws ? ws.readyState : -1, authenticated: wsReady }));
+      return true;
+    }
+    if (message?.type === 'omni_pair') {
+      pairWithCode(message.code, message.serverUrl)
+        .then(sendResponse)
+        .catch((err) => sendResponse({ success: false, error: String(err) }));
+      return true;
+    }
+    return false;
+  });
+}
 
 // ─── Pairing ────────────────────────────────────────────────────────────────
 

@@ -1,62 +1,43 @@
 import { useState } from "react";
-import {
-  Alert,
-  Button,
-  Card,
-  Form,
-  Input,
-  InputNumber,
-  Select,
-  Space,
-  Typography,
-  message,
-} from "antd";
-import { PlayCircleOutlined } from "@ant-design/icons";
+import { Alert, Card, Typography, message } from "antd";
 import { useNavigate } from "react-router-dom";
 import { useExtensions, useStartScrape } from "@/hooks/useExtensions";
+import {
+  useCancelScrapeJob,
+  useResumeScrape,
+  useScrapeJob,
+} from "@/hooks/useScrapeJob";
 import type { ScrapeRequest } from "@/api/extensions";
+import {
+  ScrapeForm,
+  type ScrapeFormValues,
+  type ScrapeMode,
+} from "@/components/extensions/ScrapeForm";
+import { ScrapeProgressPanel } from "@/components/extensions/ScrapeProgressPanel";
 
-const { Title, Paragraph, Text } = Typography;
-
-type ScrapeMode = "search" | "shop" | "product";
-
-interface FormValues {
-  mode: ScrapeMode;
-  query?: string;
-  shop_url?: string;
-  product_url?: string;
-  max_pages?: number;
-  max_products?: number;
-  extension_id: string;
-}
-
-/** What each mode collects, shown so the form is self-explanatory. */
-const MODE_HELP: Record<ScrapeMode, string> = {
-  search:
-    "Collects products matching a keyword, paging through the search results.",
-  shop: "Collects every product listed in a single Shopee shop.",
-  product: "Collects the details of one product page.",
-};
+const { Title, Paragraph } = Typography;
 
 export function ShopeeScraperPage() {
-  const [form] = Form.useForm<FormValues>();
   const [mode, setMode] = useState<ScrapeMode>("search");
-  const [result, setResult] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
-  // The queued job id, kept so the operator can jump straight to its results.
+  // The queued job id drives both the progress poll and the link to its results.
   const [queuedJobId, setQueuedJobId] = useState<string | null>(null);
   const navigate = useNavigate();
 
-  const { data: extensions } = useExtensions();
+  const { data: extensions, failureNotice } = useExtensions();
   const startScrape = useStartScrape();
+
+  const jobQuery = useScrapeJob(queuedJobId);
+  const cancelJob = useCancelScrapeJob(queuedJobId ?? "");
+  const resumeJob = useResumeScrape(queuedJobId ?? "");
 
   const connected = (extensions ?? []).filter(
     (e) => e.status === "connected" && e.capabilities?.includes("shopee_scrape"),
   );
 
-  const onSubmit = (values: FormValues) => {
+  const onSubmit = (values: ScrapeFormValues) => {
     setError(null);
-    setResult(null);
+    setQueuedJobId(null);
 
     const payload: ScrapeRequest = {
       mode: values.mode,
@@ -71,7 +52,6 @@ export function ShopeeScraperPage() {
     startScrape.mutate(payload, {
       onSuccess: (data) => {
         setQueuedJobId(data.job_id);
-        setResult(`Queued as job ${data.job_id}`);
         message.success("Scrape queued");
       },
       onError: (err: Error) => {
@@ -80,6 +60,26 @@ export function ShopeeScraperPage() {
         setError(err.message || "Scrape failed");
         message.error("Scrape failed");
       },
+    });
+  };
+
+  const onCancel = () => {
+    cancelJob.mutate(undefined, {
+      onSuccess: () => message.success("Cancellation requested"),
+      onError: (err: Error) => message.error(err.message || "Failed to cancel"),
+    });
+  };
+
+  const onResume = () => {
+    resumeJob.mutate(undefined, {
+      onSuccess: (data) => {
+        if (data.resumed === false) {
+          message.info("The job is no longer blocked, so nothing was resumed");
+          return;
+        }
+        message.success("Scrape resumed");
+      },
+      onError: (err: Error) => message.error(err.message || "Failed to resume"),
     });
   };
 
@@ -94,6 +94,16 @@ export function ShopeeScraperPage() {
         only when those are unavailable.
       </Paragraph>
 
+      {failureNotice && (
+        <Alert
+          style={{ marginBottom: 16 }}
+          type="error"
+          showIcon
+          message="Extension list may be stale"
+          description={failureNotice}
+        />
+      )}
+
       {connected.length === 0 && (
         <Alert
           style={{ marginBottom: 16 }}
@@ -105,111 +115,13 @@ export function ShopeeScraperPage() {
       )}
 
       <Card>
-        <Form
-          form={form}
-          layout="vertical"
-          initialValues={{ mode: "search", max_pages: 2, max_products: 0 }}
-          onFinish={onSubmit}
-          onValuesChange={(changed) => {
-            if (changed.mode) setMode(changed.mode as ScrapeMode);
-          }}
-        >
-          <Form.Item
-            name="extension_id"
-            label="Extension"
-            rules={[{ required: true, message: "Select an extension" }]}
-          >
-            <Select
-              placeholder="Select a connected extension"
-              options={connected.map((e) => ({
-                value: e.extension_id,
-                label: `${e.hostname || "browser"} — ${e.extension_id.slice(0, 12)}…`,
-              }))}
-              notFoundContent="No connected extension with Shopee capability"
-            />
-          </Form.Item>
-
-          <Form.Item name="mode" label="Mode" rules={[{ required: true }]}>
-            <Select
-              options={[
-                { value: "search", label: "Keyword search" },
-                { value: "shop", label: "Shop listing" },
-                { value: "product", label: "Single product" },
-              ]}
-            />
-          </Form.Item>
-
-          <Paragraph type="secondary" style={{ marginTop: -12 }}>
-            {MODE_HELP[mode]}
-          </Paragraph>
-
-          {mode === "search" && (
-            <Form.Item
-              name="query"
-              label="Keyword"
-              rules={[{ required: true, message: "Enter a keyword to search for" }]}
-            >
-              <Input placeholder="e.g. mechanical keyboard" allowClear />
-            </Form.Item>
-          )}
-
-          {mode === "shop" && (
-            <Form.Item
-              name="shop_url"
-              label="Shop URL"
-              rules={[{ required: true, message: "Enter the shop URL" }]}
-            >
-              <Input placeholder="https://shopee.co.id/your-shop" allowClear />
-            </Form.Item>
-          )}
-
-          {mode === "product" && (
-            <Form.Item
-              name="product_url"
-              label="Product URL"
-              rules={[{ required: true, message: "Enter the product URL" }]}
-            >
-              <Input
-                placeholder="https://shopee.co.id/product/123/456"
-                allowClear
-              />
-            </Form.Item>
-          )}
-
-          <Space size="large" align="start">
-            <Form.Item
-              name="max_pages"
-              label="Max pages"
-              tooltip="0 means no explicit limit."
-            >
-              <InputNumber min={0} max={200} />
-            </Form.Item>
-            <Form.Item
-              name="max_products"
-              label="Max products"
-              tooltip="0 means no explicit limit."
-            >
-              <InputNumber min={0} max={10000} />
-            </Form.Item>
-          </Space>
-
-          <Form.Item style={{ marginBottom: 0 }}>
-            <Space>
-              <Button
-                type="primary"
-                htmlType="submit"
-                icon={<PlayCircleOutlined />}
-                loading={startScrape.isPending}
-                disabled={connected.length === 0}
-              >
-                Start scrape
-              </Button>
-              <Text type="secondary">
-                Results appear on the Results page.
-              </Text>
-            </Space>
-          </Form.Item>
-        </Form>
+        <ScrapeForm
+          connected={connected}
+          mode={mode}
+          onModeChange={setMode}
+          onSubmit={onSubmit}
+          submitting={startScrape.isPending}
+        />
       </Card>
 
       {error && (
@@ -222,34 +134,23 @@ export function ShopeeScraperPage() {
         />
       )}
 
-      {result && (
-        <Alert
-          style={{ marginTop: 16 }}
-          type="success"
-          showIcon
-          message="Scrape queued"
-          description={
-            <Space direction="vertical" size={4}>
-              <Text>{result}</Text>
-              <Text type="secondary">
-                It runs in the background and results appear as they are
-                collected.
-              </Text>
-              {queuedJobId && (
-                <Button
-                  size="small"
-                  type="link"
-                  style={{ paddingLeft: 0 }}
-                  onClick={() =>
-                    navigate(
-                      `/extensions/results?job_id=${encodeURIComponent(queuedJobId)}`,
-                    )
-                  }
-                >
-                  View results for this job
-                </Button>
-              )}
-            </Space>
+      {queuedJobId && (
+        <ScrapeProgressPanel
+          jobId={queuedJobId}
+          jobDetail={jobQuery.data}
+          loadError={
+            jobQuery.isError
+              ? (jobQuery.error as Error)?.message || "Failed to read the job status"
+              : null
+          }
+          onCancel={onCancel}
+          cancelling={cancelJob.isPending}
+          onResume={onResume}
+          resuming={resumeJob.isPending}
+          onViewResults={() =>
+            navigate(
+              `/extensions/results?job_id=${encodeURIComponent(queuedJobId)}`,
+            )
           }
         />
       )}

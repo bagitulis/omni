@@ -23,6 +23,10 @@ type captureOutcome struct {
 	// path wins when it works, so a DOM verdict on a page it never examined says
 	// nothing about the selectors.
 	selectorsMissed bool
+
+	// blocker is set when Shopee interposed a challenge on this page. The page
+	// was not captured, so its number is also the resume cursor.
+	blocker *Blocker
 }
 
 // capturePage captures one page, preferring network over DOM.
@@ -44,6 +48,13 @@ func (s *Scraper) capturePage(ctx context.Context, cfg Config, baseURL string, p
 		return nil, captureOutcome{}, err
 	}
 
+	// Check for a challenge before extracting anything. A captcha page has no
+	// product grid, so extracting it first would report broken selectors and send
+	// someone to fix markup that never changed.
+	if blocker := s.checkBlocked(ctx, page); blocker != nil {
+		return nil, captureOutcome{blocker: blocker}, nil
+	}
+
 	if err := s.scroll(ctx); err != nil {
 		// Scrolling failure only means lazy content may be missing; extraction
 		// still runs rather than discarding the page.
@@ -63,6 +74,35 @@ func (s *Scraper) capturePage(ctx context.Context, cfg Config, baseURL string, p
 	}
 	markSource(products, models.ScrapeSourceDOM)
 	return products, captureOutcome{selectorsMissed: !containersMatched}, nil
+}
+
+// checkBlocked asks the page whether a human has to clear something first.
+//
+// A failed check is NOT a block. An extension too old to know the command, or a
+// transient messaging failure, would otherwise stop every scrape the moment the
+// check itself broke — turning a diagnostic into an outage.
+func (s *Scraper) checkBlocked(ctx context.Context, page int) *Blocker {
+	raw, err := s.sender.Send(ctx, "check_blocked", map[string]any{})
+	if err != nil {
+		return nil
+	}
+
+	var out struct {
+		Blocked bool   `json:"blocked"`
+		Kind    string `json:"kind"`
+		URL     string `json:"url"`
+	}
+	if json.Unmarshal(unwrapEnvelope(raw), &out) != nil {
+		return nil
+	}
+	if !out.Blocked {
+		return nil
+	}
+
+	// The kind is passed through rather than validated against the known set:
+	// the extension may learn a new wall before the backend does, and discarding
+	// an unrecognised kind would turn a real block into a silent success.
+	return &Blocker{Kind: BlockerKind(out.Kind), URL: out.URL, Page: page}
 }
 
 // markSource stamps the capture path onto each product.

@@ -5,6 +5,10 @@
 // {success, data} envelope.
 
 import apiClient from "./client";
+import { API_TIMEOUT } from "@/lib/constants";
+
+/** Which capture path produced a scraped row. Mirrors backend constants. */
+export type ScrapeSource = "network" | "dom";
 
 /** A paired Chrome extension install. */
 export interface OmniExtension {
@@ -42,8 +46,8 @@ export interface ScrapedProduct {
   image_url: string;
   shopee_item_id?: string;
   page_number: number;
-  /** "network" | "dom" — which capture path produced this row. */
-  source?: string;
+  /** Which capture path produced this row. */
+  source?: ScrapeSource;
   created_at: string;
 }
 
@@ -66,18 +70,26 @@ export interface ScrapeRequest {
   extension_id: string;
 }
 
-export async function listExtensions(): Promise<OmniExtension[]> {
-  const response = await apiClient.get<OmniExtension[]>("/extensions");
+export async function listExtensions(
+  signal?: AbortSignal,
+): Promise<OmniExtension[]> {
+  const response = await apiClient.get<OmniExtension[]>("/extensions", {
+    signal,
+    timeout: API_TIMEOUT.SHORT,
+  });
   if (!response.success) {
     throw new Error(response.error || "Failed to load extensions");
   }
   return response.data ?? [];
 }
 
-export async function generatePairingCode(): Promise<PairingCodeResponse> {
+export async function generatePairingCode(
+  signal?: AbortSignal,
+): Promise<PairingCodeResponse> {
   const response = await apiClient.post<PairingCodeResponse>(
     "/extensions/pairing/generate",
     {},
+    { signal, timeout: API_TIMEOUT.SHORT },
   );
   if (!response.success || !response.data) {
     throw new Error(response.error || "Failed to generate a pairing code");
@@ -85,9 +97,13 @@ export async function generatePairingCode(): Promise<PairingCodeResponse> {
   return response.data;
 }
 
-export async function unpairExtension(extensionId: string): Promise<void> {
+export async function unpairExtension(
+  extensionId: string,
+  signal?: AbortSignal,
+): Promise<void> {
   const response = await apiClient.delete<void>(
     `/extensions/${encodeURIComponent(extensionId)}`,
+    { signal, timeout: API_TIMEOUT.SHORT },
   );
   if (!response.success) {
     throw new Error(response.error || "Failed to unpair the extension");
@@ -104,15 +120,20 @@ export async function unpairExtension(extensionId: string): Promise<void> {
 export interface StartScrapeResponse {
   job_id: string;
   status: string;
+  /** Relative path listing the rows this job collects. */
   results_url: string;
 }
 
 export async function startScrape(
   req: ScrapeRequest,
+  signal?: AbortSignal,
 ): Promise<StartScrapeResponse> {
   const response = await apiClient.post<StartScrapeResponse>(
     "/extensions/scrape",
     req,
+    // Queueing dispatches a command to a paired browser, so it is given a longer
+    // bound than an ordinary write but still an explicit one.
+    { signal, timeout: API_TIMEOUT.LONG },
   );
   if (!response.success || !response.data) {
     // The backend distinguishes an unreachable extension from a blocked scrape,
@@ -145,6 +166,7 @@ export async function listScrapedProducts(
   jobId: string,
   page = 1,
   pageSize = 50,
+  signal?: AbortSignal,
 ): Promise<ScrapedProductsPage> {
   const params = new URLSearchParams({
     page: String(page),
@@ -154,6 +176,7 @@ export async function listScrapedProducts(
 
   const response = (await apiClient.get<ScrapedProduct[]>(
     `/extensions/scraped-products?${params.toString()}`,
+    { signal, timeout: API_TIMEOUT.SHORT },
   )) as PaginatedResponse<ScrapedProduct[]>;
 
   if (!response.success) {

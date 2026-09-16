@@ -5,7 +5,7 @@
   "type": "module",
   "description": "Omni browser extension (MV3). Tests cover the pure logic that does not require a Chrome runtime.",
   "scripts": {
-    "test": "node --test tests/url-logic.test.mjs",
+    "test": "node --test tests/*.test.mjs",
     "test:pairing": "node --test tests/pairing-logic.test.mjs",
     "check": "node scripts/check-syntax.mjs"
   }

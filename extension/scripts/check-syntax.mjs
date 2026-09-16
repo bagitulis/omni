@@ -12,15 +12,30 @@
 // than treating every file the same.
 
 import { execFileSync } from 'node:child_process';
-import { copyFileSync, rmSync, existsSync } from 'node:fs';
+import { copyFileSync, rmSync, existsSync, readFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import { dirname, join } from 'node:path';
 
 const here = dirname(fileURLToPath(import.meta.url));
 const root = join(here, '..');
 
-const MODULE_FILES = ['service-worker.js'];
-const SCRIPT_FILES = ['content-shopee.js', 'popup.js', 'main-network-observer.js'];
+const manifest = JSON.parse(readFileSync(join(root, 'manifest.json'), 'utf8'));
+
+// The file lists are derived from the manifest rather than hardcoded. A
+// hardcoded list silently stops covering anything added later, which is exactly
+// how a new content script reaches chrome://extensions unchecked.
+const MODULE_FILES = [manifest.background?.service_worker].filter(
+  (f) => f && manifest.background?.type === 'module',
+);
+
+const SCRIPT_FILES = [
+  ...(manifest.content_scripts || []).flatMap((entry) => entry.js || []),
+  ...(manifest.web_accessible_resources || []).flatMap((entry) =>
+    (entry.resources || []).filter((r) => r.endsWith('.js')),
+  ),
+  // Not referenced from the manifest: the popup loads it from popup.html.
+  'popup.js',
+].filter((file, i, all) => all.indexOf(file) === i);
 
 let failed = 0;
 
@@ -59,23 +74,13 @@ for (const f of MODULE_FILES) if (!checkModule(f)) failed++;
 for (const f of SCRIPT_FILES) if (!checkScript(f)) failed++;
 
 // The manifest is hand-edited, so a malformed trailing comma is worth catching
-// here rather than at chrome://extensions load time.
-try {
-  const manifest = JSON.parse(
-    execFileSync(process.execPath, ['-e', 'process.stdout.write(JSON.stringify(require("./manifest.json")))'], {
-      cwd: root,
-      stdio: 'pipe',
-    }).toString(),
-  );
-  if (manifest.manifest_version !== 3) {
-    console.error(`  FAIL  manifest.json: expected manifest_version 3, got ${manifest.manifest_version}`);
-    failed++;
-  } else {
-    console.log(`  ok    manifest.json (mv${manifest.manifest_version}, v${manifest.version})`);
-  }
-} catch (err) {
-  console.error(`  FAIL  manifest.json: ${err.message}`);
+// here rather than at chrome://extensions load time. It was already parsed
+// above, so this only has to check the version.
+if (manifest.manifest_version !== 3) {
+  console.error(`  FAIL  manifest.json: expected manifest_version 3, got ${manifest.manifest_version}`);
   failed++;
+} else {
+  console.log(`  ok    manifest.json (mv${manifest.manifest_version}, v${manifest.version})`);
 }
 
 if (failed > 0) {

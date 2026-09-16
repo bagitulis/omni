@@ -7,29 +7,19 @@ import {
   Empty,
   Input,
   Space,
-  Table,
   Tag,
   Typography,
+  message,
 } from "antd";
-import type { ColumnsType } from "antd/es/table";
 import { SearchOutlined, ReloadOutlined } from "@ant-design/icons";
 import { useScrapedProducts } from "@/hooks/useExtensions";
-import { summariseSources, type ScrapedProduct } from "@/api/extensions";
+import { useResumeScrape, useScrapeJob } from "@/hooks/useScrapeJob";
+import { extractBlocker, parseScrapeSummary, scrapeStatusTag } from "@/api/scrapeJob";
+import { summariseSources } from "@/api/extensions";
+import { ScrapedProductTable } from "@/components/tables/ScrapedProductTable";
+import { ScrapeBlockerAlert } from "@/components/extensions/ScrapeBlockerAlert";
 
 const { Title, Paragraph, Text } = Typography;
-
-/**
- * Render the capture source as a tag.
- *
- * Surfaced deliberately: if the DOM fallback is carrying production traffic,
- * that means the preferred API capture has stopped working, and it should be
- * visible rather than discovered when the fallback also breaks.
- */
-function SourceTag({ source }: { source?: string }) {
-  if (source === "network") return <Tag color="green">network API</Tag>;
-  if (source === "dom") return <Tag color="orange">DOM fallback</Tag>;
-  return <Tag>unknown</Tag>;
-}
 
 export function ExtensionResultsPage() {
   // The job id is read from the URL so the scraper page can link straight to a
@@ -66,62 +56,26 @@ export function ExtensionResultsPage() {
   const { data, isLoading, isError, error, refetch, isFetching } =
     useScrapedProducts(jobId, page, 50);
 
-  const columns: ColumnsType<ScrapedProduct> = [
-    {
-      title: "Product",
-      dataIndex: "product_name",
-      key: "product_name",
-      render: (name: string, row) => (
-        <Space direction="vertical" size={0}>
-          <Text strong>{name}</Text>
-          {row.link && (
-            <Typography.Link
-              href={row.link}
-              target="_blank"
-              rel="noopener noreferrer"
-              style={{ fontSize: 12 }}
-            >
-              open on Shopee
-            </Typography.Link>
-          )}
-        </Space>
-      ),
-    },
-    {
-      title: "Price",
-      dataIndex: "price",
-      key: "price",
-      width: 110,
-      render: (price: string) => price || "—",
-    },
-    {
-      title: "Sold",
-      dataIndex: "sold",
-      key: "sold",
-      width: 90,
-      render: (sold: string) => sold || "—",
-    },
-    {
-      title: "Source",
-      dataIndex: "source",
-      key: "source",
-      width: 130,
-      render: (source: string) => <SourceTag source={source} />,
-    },
-    {
-      title: "Page",
-      dataIndex: "page_number",
-      key: "page_number",
-      width: 70,
-    },
-    {
-      title: "Shop item id",
-      dataIndex: "shopee_item_id",
-      key: "shopee_item_id",
-      width: 130,
-      render: (id: string) => id || "—",
-    },
-  ];
+  const jobQuery = useScrapeJob(jobId);
+  const resumeJob = useResumeScrape(jobId);
+
+  const jobDetail = jobQuery.data;
+  const blocker = extractBlocker(jobDetail ?? undefined);
+  const summary = parseScrapeSummary(jobDetail?.result_data);
+  const statusTag = jobDetail ? scrapeStatusTag(jobDetail.status) : null;
+
+  const onResume = () => {
+    resumeJob.mutate(undefined, {
+      onSuccess: (resumed) => {
+        if (resumed.resumed === false) {
+          message.info("The job is no longer blocked, so nothing was resumed");
+          return;
+        }
+        message.success("Scrape resumed");
+      },
+      onError: (err: Error) => message.error(err.message || "Failed to resume"),
+    });
+  };
 
   const products = data?.products ?? [];
 
@@ -153,9 +107,7 @@ export function ExtensionResultsPage() {
           >
             Load
           </Button>
-          {jobId && (
-            <Button onClick={() => applyJobId("")}>Clear</Button>
-          )}
+          {jobId && <Button onClick={() => applyJobId("")}>Clear</Button>}
           <Button
             icon={<ReloadOutlined />}
             loading={isFetching}
@@ -166,6 +118,17 @@ export function ExtensionResultsPage() {
           </Button>
         </Space>
       </Card>
+
+      {blocker && (
+        <div style={{ marginBottom: 16 }}>
+          <ScrapeBlockerAlert
+            blocker={blocker}
+            onResume={onResume}
+            resuming={resumeJob.isPending}
+            resumeFromPage={summary?.resume_from_page}
+          />
+        </div>
+      )}
 
       {isError && (
         <Alert
@@ -183,10 +146,9 @@ export function ExtensionResultsPage() {
             <Space>
               <Text>Job</Text>
               <Text code>{jobId}</Text>
+              {statusTag && <Tag color={statusTag.color}>{statusTag.label}</Tag>}
               {products.length > 0 && (
-                <Text type="secondary">
-                  — {summariseSources(products)}
-                </Text>
+                <Text type="secondary">— {summariseSources(products)}</Text>
               )}
             </Space>
           ) : (
@@ -197,22 +159,14 @@ export function ExtensionResultsPage() {
         {!jobId ? (
           <Empty description="Enter a job id to load its results." />
         ) : (
-          <Table
-            rowKey="id"
-            columns={columns}
-            dataSource={products}
+          <ScrapedProductTable
+            products={products}
             loading={isLoading}
             pagination={{
               current: data?.page ?? page,
               pageSize: data?.page_size ?? 50,
               total: data?.total ?? 0,
               onChange: setPage,
-              showSizeChanger: false,
-            }}
-            locale={{
-              emptyText: (
-                <Empty description="No products were collected for this job." />
-              ),
             }}
           />
         )}

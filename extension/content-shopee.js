@@ -82,8 +82,15 @@
    *
    * Every field is best-effort: a card missing its price still yields a row, so
    * one markup change does not silently discard the whole page.
+   *
+   * Returns the rows AND whether any selector set matched a product grid. The
+   * flag is what separates "this shop is empty" from "Shopee changed its
+   * markup": without it both look like a successful scrape of nothing, and a
+   * redesign goes unnoticed until someone wonders where the catalogue went.
    */
   function extractProducts() {
+    let containersMatched = false;
+
     for (const set of PRODUCT_SELECTOR_SETS) {
       let containers;
       try {
@@ -92,6 +99,7 @@
         continue;
       }
       if (containers.length === 0) continue;
+      containersMatched = true;
 
       const rows = [];
       for (const card of containers) {
@@ -114,9 +122,26 @@
         });
       }
 
-      if (rows.length > 0) return rows;
+      if (rows.length > 0) return { rows, containersMatched: true };
     }
-    return [];
+    return { rows: [], containersMatched };
+  }
+
+  /**
+   * Whether a product grid is present on the page at all.
+   *
+   * Used to decide whether "no pagination control" means a single page of
+   * results or a page that is not a result list at all.
+   */
+  function hasProductGrid() {
+    for (const set of PRODUCT_SELECTOR_SETS) {
+      try {
+        if (document.querySelectorAll(set.container).length > 0) return true;
+      } catch {
+        continue;
+      }
+    }
+    return false;
   }
 
   // ─── Pagination detection ─────────────────────────────────────────────────
@@ -134,15 +159,33 @@
   const NEXT_BIG = ['a.shopee-icon-button.shopee-icon-button--right'];
   const NEXT_BIG_DISABLED = ['a.shopee-icon-button.shopee-icon-button--right.shopee-icon-button--disabled'];
 
-  function isLastPage() {
+  /**
+   * Decide whether this is the last page, and say how that was decided.
+   *
+   * Tri-state on purpose. The previous version returned `true` whenever no
+   * pagination control was found, which is exactly the shape of a captcha
+   * interstitial, a login wall, and a block page — none of which have pagination
+   * OR a product grid. A blocked scrape therefore ended as a clean success.
+   *
+   * `single_page` is only claimed when the product grid is actually present.
+   * Otherwise the answer is `unknown`, which does not stop the run: the blocker
+   * check is what decides that case.
+   */
+  function lastPageVerdict() {
     const disabled = findFirst(NEXT_DISABLED) || findFirst(NEXT_BIG_DISABLED);
-    if (disabled && !isClickable(disabled)) return true;
+    if (disabled && !isClickable(disabled)) {
+      return { is_last: true, reason: 'next_disabled' };
+    }
 
-    // No pagination control at all means a single page of results.
     const enabled = findFirst(NEXT_ENABLED) || findFirst(NEXT_BIG);
-    if (!enabled) return true;
+    if (enabled && isClickable(enabled)) {
+      return { is_last: false, reason: 'next_enabled' };
+    }
 
-    return false;
+    if (hasProductGrid()) {
+      return { is_last: true, reason: 'single_page' };
+    }
+    return { is_last: false, reason: 'unknown' };
   }
 
   function isClickable(el) {
@@ -150,6 +193,61 @@
     if (el.disabled) return false;
     const cls = el.className || '';
     return !String(cls).includes('disabled');
+  }
+
+  // ─── Blocker detection ────────────────────────────────────────────────────
+
+  // Paths Shopee redirects to when it interposes a challenge. Matched against
+  // the URL rather than the page text, because text is localised and changes far
+  // more often than these routes do.
+  const BLOCKER_URL_PATTERNS = [
+    { kind: 'captcha', patterns: ['/verify/traffic', '/verify/captcha', '/verify/bot'] },
+    { kind: 'login_required', patterns: ['/buyer/login', '/login?next=', '/buyer/signup'] },
+    { kind: 'rate_limited', patterns: ['/verify/rate'] },
+  ];
+
+  // DOM markers that indicate a challenge even when the URL looks ordinary:
+  // Shopee sometimes renders the captcha in place rather than redirecting.
+  const CAPTCHA_MARKERS = [
+    'iframe[src*="captcha"]',
+    'iframe[src*="recaptcha"]',
+    'div[class*="captcha"]',
+    '#captcha',
+  ];
+  const LOGIN_FORM_MARKERS = ['input[type="password"]', 'form[action*="login"]'];
+
+  /**
+   * Classify a URL as a known blocker route, or '' when it is ordinary.
+   *
+   * The patterns are anchored on real paths rather than bare words: a product
+   * slug containing "login" must not stop a scrape.
+   */
+  function classifyBlockerUrl(url) {
+    const lower = String(url || '').toLowerCase();
+    for (const { kind, patterns } of BLOCKER_URL_PATTERNS) {
+      for (const pattern of patterns) {
+        if (lower.includes(pattern)) return kind;
+      }
+    }
+    return '';
+  }
+
+  /**
+   * Report whether the page is a challenge the operator has to clear.
+   *
+   * Returns the kind and the location only. Page text and HTML are deliberately
+   * never included: the operator needs to know what kind of wall it is and
+   * where, and capturing the body would pull Shopee's content into omni's
+   * database and logs for no operational gain.
+   */
+  function checkBlocked() {
+    const url = window.location.href;
+
+    let kind = classifyBlockerUrl(url);
+    if (!kind && findFirst(CAPTCHA_MARKERS)) kind = 'anti_bot';
+    if (!kind && findFirst(LOGIN_FORM_MARKERS)) kind = 'login_required';
+
+    return { success: true, data: { blocked: Boolean(kind), kind, url } };
   }
 
   // ─── Commands ─────────────────────────────────────────────────────────────
@@ -189,10 +287,20 @@
     return { success: true, data: { finalHeight: document.documentElement.scrollHeight } };
   }
 
+  /**
+   * Advance to the next page and confirm it actually happened.
+   *
+   * The click is verified rather than assumed: Shopee paginates client-side, and
+   * a control that is present but inert used to report success. The page loop
+   * would then re-capture the same page, which its own deduplication hid — so a
+   * scrape stopped early and still looked complete.
+   */
   async function clickNext() {
     const el = findFirst(NEXT_BIG) || findFirst(NEXT_ENABLED);
     if (!el) return { success: false, error: 'next page control not found' };
     if (!isClickable(el)) return { success: false, error: 'next page control is disabled (last page)' };
+
+    const before = window.location.href;
 
     el.scrollIntoView({ block: 'center' });
     await sleep(200);
@@ -200,19 +308,32 @@
     // Shopee paginates client-side; a short settle avoids reading the previous
     // page's DOM.
     await sleep(3000);
-    return { success: true, data: null };
+
+    const after = window.location.href;
+    if (!after || after === before) {
+      return { success: false, error: 'clicked next but the page did not advance' };
+    }
+    return { success: true, data: { url: after } };
   }
 
   function getUrl() {
     return { success: true, data: { url: window.location.href } };
   }
 
+  /**
+   * Extract the page's products.
+   *
+   * containers_matched rides alongside the rows rather than inside `data`,
+   * because the backend unwraps the envelope's `data` member and would discard a
+   * sibling placed there.
+   */
   function extract() {
-    return { success: true, data: extractProducts() };
+    const { rows, containersMatched } = extractProducts();
+    return { success: true, data: rows, containers_matched: containersMatched };
   }
 
   function checkLastPage() {
-    return { success: true, data: { is_last: isLastPage() } };
+    return { success: true, data: lastPageVerdict() };
   }
 
   function checkText({ text = '' } = {}) {
@@ -275,6 +396,7 @@
     click_next: clickNext,
     get_url: getUrl,
     check_last_page: checkLastPage,
+    check_blocked: checkBlocked,
     check_text: checkText,
     install_observer: installObserver,
     observe_network: observeNetwork,

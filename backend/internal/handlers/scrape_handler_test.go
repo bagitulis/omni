@@ -5,6 +5,8 @@ import (
 
 	"bytes"
 	"encoding/json"
+	"strings"
+
 	"github.com/omni/backend/internal/models"
 	"net/http"
 	"net/http/httptest"
@@ -145,20 +147,75 @@ func TestScrapeHandler_QueuesRatherThanRunsInline(t *testing.T) {
 	assert.Equal(t, http.StatusServiceUnavailable, w.Code)
 }
 
+// TestScrapeHandler_RejectsMalformedExtensionID pins that the start path runs
+// the shared identifier validation. `binding:"required"` alone accepts any
+// non-empty string, including one carrying characters that could forge a log
+// line or be abused in a lookup.
+func TestScrapeHandler_RejectsMalformedExtensionID(t *testing.T) {
+	h := NewScrapeHandler(nil, nil) // nil service: validation must run first
+	r := newScrapeTestRouter(t, h, true)
+
+	cases := []struct {
+		name string
+		body string
+	}{
+		{"space", `{"mode":"search","query":"x","extension_id":"ext 1"}`},
+		{"path separator", `{"mode":"search","query":"x","extension_id":"../../etc"}`},
+		{"newline", "{\"mode\":\"search\",\"query\":\"x\",\"extension_id\":\"ext\\n1\"}"},
+		{"over length", `{"mode":"search","query":"x","extension_id":"` + strings.Repeat("a", 129) + `"}`},
+	}
+
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			req, err := http.NewRequest(http.MethodPost, "/api/extensions/scrape",
+				bytes.NewReader([]byte(tc.body)))
+			require.NoError(t, err)
+			req.Header.Set("Content-Type", "application/json")
+
+			w := httptest.NewRecorder()
+			r.ServeHTTP(w, req)
+
+			assert.Equal(t, http.StatusBadRequest, w.Code,
+				"an invalid extension_id must be rejected before dispatch")
+		})
+	}
+}
+
+// TestScrapeHandler_AcceptsChromeExtensionID guards against the validation being
+// tightened past what a real Chrome extension id looks like.
+func TestScrapeHandler_AcceptsChromeExtensionID(t *testing.T) {
+	h := NewScrapeHandler(nil, nil)
+	r := newScrapeTestRouter(t, h, true)
+
+	body := `{"mode":"search","query":"x","extension_id":"abcdefghijklmnopabcdefghijklmnop"}`
+	req, err := http.NewRequest(http.MethodPost, "/api/extensions/scrape", bytes.NewReader([]byte(body)))
+	require.NoError(t, err)
+	req.Header.Set("Content-Type", "application/json")
+
+	w := httptest.NewRecorder()
+	r.ServeHTTP(w, req)
+
+	// Passes validation and stops at the availability check, not at a 400.
+	assert.Equal(t, http.StatusServiceUnavailable, w.Code)
+}
+
 func TestValidateScrapeRequest(t *testing.T) {
 	cases := []struct {
 		name    string
 		body    startScrapeRequest
 		wantErr bool
 	}{
-		{"search ok", startScrapeRequest{Mode: "search", Query: "x"}, false},
+		{"search ok", startScrapeRequest{Mode: "search", Query: "x", ExtensionID: "ext-1"}, false},
 		{"search missing query", startScrapeRequest{Mode: "search"}, true},
-		{"shop ok", startScrapeRequest{Mode: "shop", ShopURL: "https://x"}, false},
+		{"shop ok", startScrapeRequest{Mode: "shop", ShopURL: "https://x", ExtensionID: "ext-1"}, false},
 		{"shop missing url", startScrapeRequest{Mode: "shop"}, true},
-		{"product ok", startScrapeRequest{Mode: "product", ProductURL: "https://x"}, false},
+		{"product ok", startScrapeRequest{Mode: "product", ProductURL: "https://x", ExtensionID: "ext-1"}, false},
 		{"product missing url", startScrapeRequest{Mode: "product"}, true},
 		{"unknown mode", startScrapeRequest{Mode: "nope"}, true},
 		{"empty mode", startScrapeRequest{}, true},
+		{"missing extension id", startScrapeRequest{Mode: "search", Query: "x"}, true},
+		{"malformed extension id", startScrapeRequest{Mode: "search", Query: "x", ExtensionID: "ext 1"}, true},
+		{"valid extension id", startScrapeRequest{Mode: "search", Query: "x", ExtensionID: "ext-1_A"}, false},
 	}
 
 	for _, tc := range cases {

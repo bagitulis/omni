@@ -24,7 +24,7 @@
   "content_scripts": [
     {
       "matches": ["https://shopee.co.id/*", "https://www.shopee.co.id/*"],
-      "js": ["content-shopee.js"],
+      "js": ["content-shopee.js", "overlay.js"],
       "run_at": "document_idle"
     }
   ],

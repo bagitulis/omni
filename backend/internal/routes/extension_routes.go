@@ -45,6 +45,7 @@ func RegisterExtensionRoutes(
 
 		if scrapeHandler != nil {
 			authed.POST("/scrape", scrapeHandler.Start)
+			authed.POST("/scrape/:job_id/resume", scrapeHandler.Resume)
 			authed.GET("/scraped-products", scrapeHandler.ListProducts)
 		}
 	}
