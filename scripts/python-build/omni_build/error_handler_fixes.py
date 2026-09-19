@@ -514,6 +514,13 @@ class SystemFixer:
     
     @staticmethod
     def aggressive_cleanup() -> None:
-        """Aggressive cleanup - all unused resources."""
-        subprocess.run(get_runtime().system_prune(all=True, volumes=True), 
+        """Aggressive cleanup - all unused IMAGES only.
+
+        NEVER prune volumes: this runs automatically from error escalation
+        (L6) and disk-full symptom handling, and `system prune --volumes`
+        would destroy unused named volumes machine-wide — including the
+        Postgres data volume (omni-pgdata). Image cleanup is enough to
+        reclaim disk; volume hygiene needs a human decision.
+        """
+        subprocess.run(get_runtime().system_prune(all=True, volumes=False),
                       capture_output=True, check=False)

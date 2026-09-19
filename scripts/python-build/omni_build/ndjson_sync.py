@@ -918,7 +918,22 @@ def import_all(project_root: Path) -> Tuple[bool, List[SyncResult]]:
             log_warning("No pre-import backup available (tables were empty)")
         return False, []
 
-    # Import succeeded — cleanup backup
+    # Import finished without exception. If it still reported errors, KEEP
+    # the pre-import backup: tables were truncated/partially imported and
+    # this snapshot is the only local copy of the pre-import state.
+    if errors > 0:
+        log_warning(
+            f"Import completed with {errors} errors — pre-import backup KEPT "
+            f"for recovery: {backup_dir}"
+        )
+        if secondary_constraints:
+            log_info("Recreating UNIQUE constraints after partial import...")
+            _recreate_secondary_unique_constraints(secondary_constraints, psql_exec_fn=_psql_exec)
+            _delete_constraint_manifest(sync_dir)
+        _reset_sequences(sorted_tables)
+        return False, results
+
+    # Clean success — cleanup backup
     _cleanup_backup(backup_dir)
 
     # Phase 3: Recreate secondary UNIQUE constraints

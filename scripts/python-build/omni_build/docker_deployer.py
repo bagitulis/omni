@@ -45,7 +45,15 @@ class DockerDeployer:
         cmd = get_compose_command()
         for file in compose_files:
             cmd.extend(["-f", file])
-        cmd.extend(["up", "-d", "--remove-orphans"])
+        cmd.extend([
+            "up", "-d",
+            # Always recreate existing containers: a stale container created
+            # by an older compose revision (e.g. without a healthcheck) is
+            # NOT recreated by plain `up`, and every service that waits on
+            # `depends_on: service_healthy` then hangs until deploy timeout.
+            "--force-recreate",
+            "--remove-orphans",
+        ])
         
         for attempt in range(1, max_retries + 1):
             log_info(f"Deploy attempt {attempt}/{max_retries}...")

@@ -180,8 +180,16 @@ class PostgresFixer:
             )
 
             if create_result.returncode != 0 and "already exists" not in create_result.stderr:
-                log_warning(f"Failed to create database: {create_result.stderr}")
-                return PostgresFixer.repair_postgres_database()
+                # NEVER auto-reset on a failed create: this fixer runs
+                # automatically, and repair_postgres_database() is destructive
+                # (compose down + data removal). Fail loudly for a human to
+                # decide instead.
+                log_error(
+                    f"Failed to create database: {create_result.stderr}. "
+                    "Auto-repair skipped (destructive); run 'python build.py "
+                    "full --restore' manually if a reset is really intended."
+                )
+                return False
 
             log_success(f"Database '{_db}' created successfully!")
 
@@ -274,9 +282,15 @@ class PostgresFixer:
             return True
 
         except Exception as e:
-            log_error(f"Failed to create PostgreSQL database: {e}")
-            log_info("Falling back to full database reset...")
-            return PostgresFixer.repair_postgres_database()
+            # NEVER auto-reset on exception: repair_postgres_database() is
+            # destructive (compose down + data removal) and this fixer runs
+            # automatically. Fail loudly instead of silently wiping data.
+            log_error(
+                f"Failed to create PostgreSQL database: {e}. "
+                "Auto-repair skipped (destructive); run 'python build.py "
+                "full --restore' manually if a reset is really intended."
+            )
+            return False
 
     @staticmethod
     def repair_postgres_database() -> bool:

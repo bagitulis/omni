@@ -121,8 +121,10 @@ def test_restore_chunked_files_fails_on_expected_row_mismatch(monkeypatch: Any, 
     assert rows == 5
 
 
-def test_orchestrator_fails_build_when_restore_fails():
+def test_orchestrator_fails_build_when_restore_fails(monkeypatch: Any):
     orchestrator = BuildOrchestrator.__new__(BuildOrchestrator)
+    # _execute_smart_full reads config.project_root for the NDJSON import path.
+    orchestrator.config = cast(Any, SimpleNamespace(project_root=Path(".")))
     orchestrator._helpers = cast(Any, SimpleNamespace(
         safe_docker_check=lambda: True,
         verify_all_services_truly_healthy=lambda: True,
@@ -137,6 +139,11 @@ def test_orchestrator_fails_build_when_restore_fails():
         wait_for_postgres=lambda timeout=120: True,
         restore=lambda force=True: (False, "row total mismatch"),
     ))
+    # Restore now goes through ndjson_sync.import_all(project_root).
+    monkeypatch.setattr(
+        "omni_build.ndjson_sync.import_all",
+        lambda project_root: (False, [SimpleNamespace(errors=1, imported=0)]),
+    )
 
     result = orchestrator._execute_smart_full(
         mode=BuildMode.SMART,
@@ -147,7 +154,7 @@ def test_orchestrator_fails_build_when_restore_fails():
     )
 
     assert result.success is False
-    assert result.errors == ["DB restore failed: row total mismatch"]
+    assert result.errors == ["DB restore failed: NDJSON import had 1 errors"]
 
 
 def test_restore_tables_fails_when_checksum_mismatch(monkeypatch: Any, tmp_path: Path):
