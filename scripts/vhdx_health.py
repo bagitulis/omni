@@ -95,10 +95,15 @@ def render_reminder(health: VhdxHealth, distro: str = DEFAULT_DISTRO) -> str:
         f"  Stranded       : {_human(health.dead_bytes)}",
         "",
         "  Pruning inside the VM cannot return this space: ext4.vhdx is not",
-        "  sparse, so Windows keeps it allocated. Reclaim it with ONE of:",
+        "  sparse, so Windows keeps it allocated.",
         "",
-        "    scripts/compact-podman-vhd.ps1          (from an ADMIN PowerShell)",
+        "  RECOMMENDED (safe) - from an ADMIN PowerShell:",
+        "    scripts/compact-podman-vhd.ps1",
+        "",
+        "  ALTERNATIVE (instant, but UNSAFE):",
         f"    wsl --manage {distro} --set-sparse true --allow-unsafe",
+        "    WARNING: WSL disables sparse VHD by default due to potential DATA",
+        "    CORRUPTION. Use the alternative only if you accept that risk.",
         "",
         "  Administrator rights are required, so this cannot run automatically.",
         rule,
@@ -181,12 +186,20 @@ def is_elevated() -> bool:
         return False
 
 
-def run_compaction(project_root: Path, distro: str = DEFAULT_DISTRO) -> bool:
+def run_compaction(
+    project_root: Path,
+    distro: str = DEFAULT_DISTRO,
+    no_restart: bool = True,
+) -> bool:
     """Attempt VHDX compaction, degrading cleanly when not elevated.
 
     Compaction requires Administrator (Optimize-VHD / diskpart), so this can
     never succeed silently from an ordinary build shell. Instead of failing the
     build, it prints the exact elevated command the operator must run.
+
+    `no_restart` defaults to True: the script otherwise starts the VM and all
+    omni-* containers afterwards, which surprises an operator who had the
+    machine stopped (observed live 2026-09-21).
 
     Returns True only when compaction actually ran and reported success.
     """
@@ -198,9 +211,10 @@ def run_compaction(project_root: Path, distro: str = DEFAULT_DISTRO) -> bool:
 
     if not is_elevated():
         print("  [SKIP] Not running as Administrator.")
-        print("         Run in an ADMIN PowerShell:")
+        print("         Run in an ADMIN PowerShell (safe, offline compaction):")
         print(f"           {script}")
-        print("         or:")
+        print("         Alternative (instant, but UNSAFE - WSL disables sparse")
+        print("         VHD by default due to potential data corruption):")
         print(f"           wsl --manage {distro} --set-sparse true --allow-unsafe")
         return False
 
@@ -208,11 +222,14 @@ def run_compaction(project_root: Path, distro: str = DEFAULT_DISTRO) -> bool:
         print(f"  [WARN] Compaction script not found: {script}")
         return False
 
+    # Always pass through: the build shell must not silently resurrect a
+    # machine the operator stopped.
+    cmd = ["pwsh", "-NoProfile", "-File", str(script)]
+    if no_restart:
+        cmd.append("-NoRestart")
+
     print("  [VHDX] Compacting (this takes 2-5 minutes)...")
-    result = subprocess.run(
-        ["pwsh", "-NoProfile", "-File", str(script)],
-        check=False,
-    )
+    result = subprocess.run(cmd, check=False)
     if result.returncode == 0:
         print("  [OK] VHDX compaction finished.")
         return True
