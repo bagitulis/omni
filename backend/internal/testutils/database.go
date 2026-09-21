@@ -83,9 +83,13 @@ func skipIfNoContainerRuntime(t *testing.T) {
 	}
 }
 
-// TeardownTestPostgres terminates the postgres container.
-// Kept for backward compatibility; the shared container is automatically
-// cleaned up when the process exits (via testcontainers reaper).
+// TeardownTestPostgres is retained for backward compatibility.
+//
+// It is intentionally a no-op: the container is process-wide, so per-test
+// teardown would break every other test still using it. Real cleanup happens
+// once per process in TestMain via TeardownSharedContainer (see
+// container_cleanup.go) — NOT via the testcontainers reaper, which cannot
+// start on Podman/Windows.
 func TeardownTestPostgres(t *testing.T, container testcontainers.Container) {
 	// No-op for shared container - it lives for the process lifetime.
 	// Individual test databases are cleaned up by t.Cleanup in SetupTestPostgres.
@@ -140,6 +144,11 @@ func initSharedContainer(t *testing.T) {
 			)
 			return
 		}
+
+		// Must run before the first container is created: on platforms where
+		// the reaper cannot bind the runtime socket it makes container
+		// creation FAIL instead of degrading gracefully (see container_cleanup.go).
+		EnsureReaperPolicy()
 
 		ctx := context.Background()
 
