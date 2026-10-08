@@ -78,6 +78,19 @@ backups/
 # ===========================================
 # AI/Tool Generated (ephemeral, not source code)
 # ===========================================
+# Internal AI agent working dirs (evidence, handoffs, drafts, screenshots)
+.omo/
+.sisyphus/
+# BMad framework internal config + planning artifacts
+_bmad/
+_bmad-output/
+_evaluations/
+# Agent workflow runbooks (internal)
+.agent/
+# Runtime logs
+logs/
+# IDE local config (mcp.json has local binary paths)
+.vscode/
 # Playwright MCP session recordings (auto-generated browser snapshots)
 .playwright-mcp/
 
@@ -123,6 +136,15 @@ mcp-servers/mcp-config.json
 # Ad-hoc DB check scripts with hardcoded credentials
 backend/scripts/check_credentials_api.py
 backend/scripts/check_shopee_credentials.py
+backend/scripts/check_node_shopee.py
+backend/scripts/test_shopee_signature.py
+backend/scripts/test_wholesale_comprehensive.py
+backend/cmd/genhash/main.go
+frontend/scripts/verify_pages.js
+backend/tests/test_api.sh
+scripts/fix-user-hierarchy.sql
+scripts/finance-reports/config.py
+scripts/python-build/test_login.py
 
 # NOTE: .env (root) was untracked 2026-10-08 (git rm --cached).
 # It stays locally for dev; never re-add it.
