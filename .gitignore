@@ -27,6 +27,10 @@ __pycache__/
 # Build artifacts (bisa di-rebuild)
 backend/bin/
 *.exe
+*.exe~
+# Test coverage artifacts
+backend/coverage.out
+backend/svc_coverage.out
 
 # Frontend build output
 frontend/dist/
@@ -145,6 +149,12 @@ backend/tests/test_api.sh
 scripts/fix-user-hierarchy.sql
 scripts/finance-reports/config.py
 scripts/python-build/test_login.py
+
+# Binary test artifacts (compiled Go test binaries)
+backend/services.test
+backend/*.test
+# TikTok ads business data (notebooks)
+notebooks/tiktok_ads/data/
 
 # NOTE: .env (root) was untracked 2026-10-08 (git rm --cached).
 # It stays locally for dev; never re-add it.
