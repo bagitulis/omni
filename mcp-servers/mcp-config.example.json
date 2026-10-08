@@ -1,0 +1,41 @@
+{
+  "description": "MCP Servers Configuration - All Go binaries in bin/",
+  "servers": {
+    "n8n-mcp": {
+      "command": "npx",
+      "args": [
+        "-y",
+        "supergateway",
+        "--streamableHttp",
+        "https://n8n.example.com/mcp-server/http",
+        "--header",
+        "Authorization: Bearer YOUR_N8N_MCP_TOKEN_HERE"
+      ]
+    },
+    "tiktok-ads": {
+      "command": "mcp-servers/bin/mcp-tiktok-ads.exe",
+      "args": [],
+      "cwd": "${workspaceFolder}"
+    },
+    "shopee-ads": {
+      "command": "mcp-servers/bin/mcp-shopee-ads.exe",
+      "args": [],
+      "cwd": "${workspaceFolder}"
+    },
+    "github": {
+      "command": "mcp-servers/bin/mcp-github.exe",
+      "args": [],
+      "cwd": "${workspaceFolder}"
+    },
+    "antigravity": {
+      "command": "mcp-servers/bin/mcp-antigravity.exe",
+      "args": [],
+      "cwd": "${workspaceFolder}"
+    },
+    "omni": {
+      "command": "mcp-servers/bin/mcp-omni.exe",
+      "args": [],
+      "cwd": "${workspaceFolder}"
+    }
+  }
+}

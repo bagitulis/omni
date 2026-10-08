@@ -70,16 +70,10 @@ opencode.exe
 /*.js.map
 
 # ===========================================
-# Database Backups
+# Database Backups (NEVER commit — tenant data + marketplace secrets)
+# Untracked 2026-10-08 before public release.
 # ===========================================
-# Legacy smart backup (sql.gz) — fully replaced by ndjson sync
-# Not tracked in git (binary, large, not diffable)
-backups/smart/
-
-# NDJSON sync backup (primary, git-friendly)
-# Large files (>=10K rows) use Git LFS via backups/sync/_large/
-# Schema DDL stored in backups/sync/_schema/ (text, tracked)
-# Everything in backups/sync/ IS tracked (portable cross-machine sync)
+backups/
 
 # ===========================================
 # AI/Tool Generated (ephemeral, not source code)
@@ -120,5 +114,15 @@ desktop.ini
 .omo/plans/*.env
 .omo/evidence/
 
-# NOTE: .env (root) is currently tracked by git.
-# To untrack: git rm --cached .env (run manually, AI agents cannot execute git rm)
+# Google service account keys (real private keys — untracked 2026-10-08)
+backend/config/static/google/*.json
+!backend/config/static/google/registry.json
+# MCP server config with live bearer tokens (untracked 2026-10-08)
+# Use mcp-config.example.json as the public template.
+mcp-servers/mcp-config.json
+# Ad-hoc DB check scripts with hardcoded credentials
+backend/scripts/check_credentials_api.py
+backend/scripts/check_shopee_credentials.py
+
+# NOTE: .env (root) was untracked 2026-10-08 (git rm --cached).
+# It stays locally for dev; never re-add it.
